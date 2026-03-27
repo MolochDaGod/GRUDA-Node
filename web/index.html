@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GRUDA Node — GrudaChain Network Status</title>
+    <meta name="description" content="GRUDA Node network dashboard — ESP32 GrudaChain validator status, block height, peers, and supported tokens. Grudge Studio by RacAlvin The Pirate King." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬡</text></svg>" />
+    <style>
+      :root {
+        --orange: #ff6600;
+        --orange-dk: #cc5200;
+        --orange-lt: #ff8833;
+        --gold: #d4a843;
+        --gold-lt: #f0d060;
+        --green: #00ff88;
+        --red: #ff4444;
+        --blue: #4488ff;
+        --yellow: #ffaa00;
+        --purple: #aa44ff;
+        --bg: #0a0a14;
+        --bg-card: #12121f;
+        --bg-surface: #1a1a2e;
+        --bg-input: #16213e;
+        --text: #ffffff;
+        --text-sec: #aaaabb;
+        --text-muted: #666677;
+        --border: #1e1e35;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      /* ── Header ──────────────────────────────── */
+      header {
+        background: var(--bg-card);
+        border-bottom: 2px solid var(--orange);
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .logo {
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: 4px;
+        color: var(--orange);
+        text-shadow: 0 0 16px rgba(255, 102, 0, 0.4);
+      }
+      .logo-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+      .header-spacer { flex: 1; }
+      .status-pill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 6px 16px;
+        font-size: 13px;
+        color: var(--text-sec);
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--text-muted);
+        transition: all 0.4s;
+      }
+      .dot.green { background: var(--green); box-shadow: 0 0 8px var(--green); }
+      .dot.red { background: var(--red); box-shadow: 0 0 8px var(--red); }
+      .dot.orange { background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+      .dot.pulse { animation: pulse 1.5s infinite; }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+      }
+
+      /* ── Grid ────────────────────────────────── */
+      .dashboard {
+        max-width: 1200px;
+        margin: 24px auto;
+        padding: 0 24px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 16px;
+      }
+
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        transition: border-color 0.2s;
+      }
+      .card:hover { border-color: var(--orange); }
+      .card h3 {
+        font-size: 11px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+      }
+
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid #1a1a2e;
+        font-size: 14px;
+      }
+      .stat-row:last-child { border-bottom: none; }
+      .stat-label { color: var(--text-sec); }
+      .stat-value { font-weight: 600; color: var(--text); font-family: "Cascadia Code", monospace; }
+      .stat-value.green { color: var(--green); }
+      .stat-value.orange { color: var(--orange); }
+      .stat-value.red { color: var(--red); }
+      .stat-value.gold { color: var(--gold-lt); }
+      .stat-value.blue { color: var(--blue); }
+
+      /* Token pills */
+      .token-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .token-pill {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--border);
+        background: var(--bg-surface);
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-size: 13px;
+        color: var(--text);
+        transition: all 0.15s;
+      }
+      .token-pill:hover {
+        border-color: var(--orange);
+        background: rgba(255, 102, 0, 0.08);
+      }
+      .chain-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: var(--bg-input);
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      /* Validator bar */
+      .validator-bar {
+        height: 6px;
+        background: var(--bg-surface);
+        border-radius: 3px;
+        margin-top: 4px;
+        overflow: hidden;
+      }
+      .validator-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.5s;
+      }
+
+      /* ── Footer ──────────────────────────────── */
+      footer {
+        text-align: center;
+        padding: 24px;
+        font-size: 12px;
+        color: var(--text-muted);
+        border-top: 1px solid var(--border);
+        margin-top: 32px;
+      }
+      footer a {
+        color: var(--orange);
+        text-decoration: none;
+      }
+      footer a:hover { text-decoration: underline; }
+
+      /* ── Responsive ──────────────────────────── */
+      @media (max-width: 480px) {
+        .dashboard { padding: 0 12px; }
+        header { padding: 12px 16px; }
+        .logo { font-size: 18px; }
+      }
+
+      .wide { grid-column: 1 / -1; }
+      .event-log {
+        max-height: 200px;
+        overflow-y: auto;
+        font-family: "Cascadia Code", monospace;
+        font-size: 12px;
+        line-height: 1.8;
+        color: var(--text-sec);
+        padding: 8px 0;
+      }
+      .event-log div { padding: 2px 0; border-bottom: 1px solid #12121f; }
+      .event-ts { color: var(--text-muted); margin-right: 8px; font-size: 11px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <div class="logo">GRUDA NODE</div>
+        <div class="logo-sub">GrudaChain Network Status</div>
+      </div>
+      <div class="header-spacer"></div>
+      <div class="status-pill">
+        <div class="dot pulse" id="nodeDot"></div>
+        <span id="nodeStatus">Connecting…</span>
+      </div>
+      <div class="status-pill">
+        <div class="dot" id="wsDot"></div>
+        <span id="wsStatus">Live Feed Off</span>
+      </div>
+    </header>
+
+    <div class="dashboard">
+      <!-- Network -->
+      <div class="card">
+        <h3>Network</h3>
+        <div class="stat-row">
+          <span class="stat-label">Network</span>
+          <span class="stat-value orange" id="netId">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Chain ID</span>
+          <span class="stat-value" id="chainId">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Consensus</span>
+          <span class="stat-value" id="consensus">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Block Time</span>
+          <span class="stat-value">3s target</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Block Reward</span>
+          <span class="stat-value gold">17 GRUDA</span>
+        </div>
+      </div>
+
+      <!-- Node Status -->
+      <div class="card">
+        <h3>Node Status</h3>
+        <div class="stat-row">
+          <span class="stat-label">Block Height</span>
+          <span class="stat-value green" id="blockHeight">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Peers</span>
+          <span class="stat-value" id="peers">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Uptime</span>
+          <span class="stat-value" id="uptime">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Firmware</span>
+          <span class="stat-value blue" id="firmware">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Device</span>
+          <span class="stat-value" id="device">ESP32-GRD17</span>
+        </div>
+      </div>
+
+      <!-- Validators -->
+      <div class="card">
+        <h3>Validators</h3>
+        <div id="validatorList">
+          <div class="stat-row"><span class="stat-label">Loading…</span></div>
+        </div>
+      </div>
+
+      <!-- Supported Tokens -->
+      <div class="card">
+        <h3>Supported Tokens</h3>
+        <div class="token-grid" id="tokenGrid">
+          <span class="token-pill">Loading…</span>
+        </div>
+      </div>
+
+      <!-- Live Events -->
+      <div class="card wide">
+        <h3>Live Events</h3>
+        <div class="event-log" id="eventLog">
+          <div><span class="event-ts">--:--:--</span>Waiting for node data…</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>GRUDA Node v1.0.0 — <a href="https://grudge-studio.com" target="_blank">Grudge Studio</a> — Created by RacAlvin The Pirate King</p>
+      <p style="margin-top:4px"><a href="https://github.com/MolochDaGod/GRUDA-Node" target="_blank">GitHub</a> · <a href="https://grudgewarlords.com" target="_blank">Grudge Warlords</a></p>
+    </footer>
+
+    <script>
+      /* ── State ──────────────────────────────────── */
+      const validators = [
+        { id: "GRD-17-NODE-001", label: "GRD-17", stake: 17000, color: "var(--orange)" },
+        { id: "GRD-27-NODE-001", label: "GRD-27", stake: 12000, color: "var(--green)" },
+        { id: "ALE-VALIDATOR-001", label: "ALE", stake: 8500, color: "var(--blue)" },
+        { id: "DANGRD-VAL-001", label: "DANGRD", stake: 5500, color: "var(--purple)" },
+      ];
+      const totalStake = validators.reduce((s, v) => s + v.stake, 0);
+
+      const defaultTokens = [
+        { symbol: "SOL", chain: "solana" },
+        { symbol: "POLY", chain: "polygon" },
+        { symbol: "ETH", chain: "ethereum" },
+        { symbol: "GBUX", chain: "solana" },
+        { symbol: "GRUDA", chain: "polygon" },
+      ];
+
+      /* ── Init ───────────────────────────────────── */
+      renderValidators();
+      renderTokens(defaultTokens);
+      fetchStatus();
+      setInterval(fetchStatus, 15000);
+      connectWS();
+
+      /* ── Fetch status from API ──────────────────── */
+      async function fetchStatus() {
+        try {
+          const r = await fetch("/api/status");
+          const data = await r.json();
+          const src = data.ok ? data : data.fallback || {};
+          applyStatus(src);
+        } catch (e) {
+          applyStatus({
+            networkId: "GRUDACHAIN-MAINNET-17",
+            chainId: "gruda-17",
+            consensus: "Keweebec2-PoS",
+            firmware: "1.0.0",
+          });
+          setNodeState("offline");
+        }
+      }
+
+      function applyStatus(s) {
+        if (s.networkId) el("netId").textContent = s.networkId;
+        if (s.chainId) el("chainId").textContent = s.chainId;
+        if (s.consensus) el("consensus").textContent = s.consensus;
+        if (s.firmware) el("firmware").textContent = "v" + s.firmware;
+
+        if (s.blockHeight !== undefined) {
+          el("blockHeight").textContent = s.blockHeight.toLocaleString();
+        }
+        if (s.peers !== undefined) {
+          el("peers").textContent = s.peers;
+        }
+        if (s.uptime !== undefined) {
+          el("uptime").textContent = formatUptime(s.uptime);
+        }
+        if (s.tokens) {
+          renderTokens(s.tokens);
+        }
+
+        if (s.running !== undefined) {
+          setNodeState(s.running ? "online" : "offline");
+        } else {
+          setNodeState("unknown");
+        }
+      }
+
+      /* ── WebSocket (live updates from backend) ──── */
+      let ws = null;
+      function connectWS() {
+        try {
+          ws = new WebSocket("wss://ws.grudge-studio.com/grudachain");
+        } catch (_) {
+          setWSState(false);
+          return;
+        }
+
+        ws.onopen = () => {
+          setWSState(true);
+          addEvent("Connected to GrudaChain live feed");
+        };
+        ws.onclose = () => {
+          setWSState(false);
+          setTimeout(connectWS, 10000);
+        };
+        ws.onerror = () => ws.close();
+        ws.onmessage = (e) => {
+          try {
+            const msg = JSON.parse(e.data);
+            handleLive(msg);
+          } catch (_) {}
+        };
+      }
+
+      function handleLive(msg) {
+        if (msg.blockHeight !== undefined) {
+          el("blockHeight").textContent = msg.blockHeight.toLocaleString();
+          addEvent(`Block #${msg.blockHeight}`);
+        }
+        if (msg.peers !== undefined) {
+          el("peers").textContent = msg.peers;
+        }
+        if (msg.type === "heartbeat") {
+          setNodeState("online");
+          if (msg.uptime) el("uptime").textContent = formatUptime(msg.uptime);
+          addEvent("♥ Heartbeat received");
+        }
+        if (msg.type === "node_online") {
+          setNodeState("online");
+          addEvent("⚡ Node came online");
+        }
+        if (msg.type === "node_offline") {
+          setNodeState("offline");
+          addEvent("⛔ Node went offline");
+        }
+      }
+
+      /* ── Renderers ──────────────────────────────── */
+      function renderValidators() {
+        const el = document.getElementById("validatorList");
+        el.innerHTML = validators.map(v => {
+          const pct = ((v.stake / totalStake) * 100).toFixed(1);
+          return `
+            <div style="margin-bottom: 12px">
+              <div class="stat-row">
+                <span class="stat-label">${v.label}</span>
+                <span class="stat-value" style="color:${v.color}">${v.stake.toLocaleString()} GRUDA · ${pct}%</span>
+              </div>
+              <div class="validator-bar">
+                <div class="validator-fill" style="width:${pct}%; background:${v.color}"></div>
+              </div>
+            </div>`;
+        }).join("");
+      }
+
+      function renderTokens(tokens) {
+        const grid = document.getElementById("tokenGrid");
+        grid.innerHTML = tokens.map(t =>
+          `<div class="token-pill">
+            <strong>${t.symbol}</strong>
+            <span class="chain-badge">${t.chain}</span>
+          </div>`
+        ).join("");
+      }
+
+      /* ── Helpers ─────────────────────────────────── */
+      function el(id) { return document.getElementById(id); }
+
+      function setNodeState(state) {
+        const dot = el("nodeDot");
+        const label = el("nodeStatus");
+        dot.className = "dot";
+        if (state === "online") {
+          dot.classList.add("green");
+          label.textContent = "Node Online";
+        } else if (state === "offline") {
+          dot.classList.add("red");
+          label.textContent = "Node Offline";
+        } else {
+          dot.classList.add("orange", "pulse");
+          label.textContent = "Checking…";
+        }
+      }
+
+      function setWSState(on) {
+        const dot = el("wsDot");
+        const label = el("wsStatus");
+        dot.className = "dot " + (on ? "green" : "red");
+        label.textContent = on ? "Live Feed" : "Live Feed Off";
+      }
+
+      function formatUptime(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        if (h > 0) return `${h}h ${m}m`;
+        if (m > 0) return `${m}m ${s}s`;
+        return `${s}s`;
+      }
+
+      function addEvent(text) {
+        const log = el("eventLog");
+        const d = new Date();
+        const ts = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
+        const div = document.createElement("div");
+        div.innerHTML = `<span class="event-ts">${ts}</span>${text}`;
+        log.prepend(div);
+        while (log.children.length > 50) log.lastChild.remove();
+      }
+    </script>
+  </body>
+</html>
