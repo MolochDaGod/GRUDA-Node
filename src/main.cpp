@@ -17,6 +17,8 @@
 #include "ui_shell.h"
 #include "voting.h"
 #include "device_api.h"
+#include "grudgeos.h"
+#include "img_loader.h"
 #include "wallet.h"
 
 /* Login screen (src/ui/screen_login.cpp) */
@@ -30,6 +32,7 @@ static GRD17NodeState nodeState;
 static TreatyState treatyState;
 static VotingState votingState;
 static AlertState alertState;
+static GrudgeOSState grudgeosState;
 
 static unsigned long lastTick = 0;
 static unsigned long lastUISync = 0;
@@ -170,6 +173,12 @@ static void _start_main_ui() {
     wsChain.beginSSL(WS_HOST, WS_PORT, WS_NS_CHAIN);
     wsChain.onEvent(_chain_ws_event);
     wsChain.setReconnectInterval(RECONNECT_INTERVAL_MS);
+
+    /* Connect to GrudgeOS as device agent */
+    grudgeos_init(grudgeosState);
+    grudgeos_connect(grudgeosState, account.grudgeId,
+                     String(account_get_token(account)),
+                     wallet.publicKeyHex);
 
     nodeState.running = true;
   }
@@ -342,6 +351,7 @@ void loop() {
   treaty_loop();
   alerts_loop();
   wsChain.loop();
+  grudgeos_loop(grudgeosState);
 
   /* UI status updates (every 2s) */
   if (millis() - lastUISync > 2000) {
@@ -374,6 +384,11 @@ void loop() {
       /* Heartbeat to backend */
       device_heartbeat(wallet, nodeState.latestBlockHeight,
                        millis() / 1000, nodeState.peerCount);
+
+      /* GrudgeOS telemetry */
+      grudgeos_send_status(grudgeosState, nodeState.latestBlockHeight,
+                           millis() / 1000, nodeState.peerCount,
+                           ESP.getFreeHeap());
     }
   }
 

@@ -16,10 +16,10 @@ extern void ui_tab_treaty_create(lv_obj_t *parent);
 extern void ui_tab_treaty_set_context(TreatyState *state, const GrudaWallet *wallet);
 extern void ui_tab_vote_create(lv_obj_t *parent);
 extern void ui_tab_alerts_create(lv_obj_t *parent);
+extern void ui_tab_nft_create(lv_obj_t *parent);
 extern void ui_tab_wallet_update(const GrudaWallet &w, float balance);
 extern void ui_tab_node_update(const GRD17NodeState &s);
 extern void ui_tab_treaty_refresh(const TreatyState &state);
-extern void ui_tab_vote_show(const Proposal &p);
 extern void ui_tab_alerts_refresh(const AlertState &state);
 
 #define HEADER_H 28  /* compact status strip */
@@ -230,15 +230,15 @@ void ui_shell_create() {
 
   /* Create tabs — cog is Settings, node gets chain icon */
   lv_obj_t *tabWallet = lv_tabview_add_tab(tv, LV_SYMBOL_HOME);
+  lv_obj_t *tabNft    = lv_tabview_add_tab(tv, LV_SYMBOL_IMAGE);
   lv_obj_t *tabTreaty = lv_tabview_add_tab(tv, LV_SYMBOL_ENVELOPE);
-  lv_obj_t *tabVote   = lv_tabview_add_tab(tv, LV_SYMBOL_OK);
   lv_obj_t *tabAlerts = lv_tabview_add_tab(tv, LV_SYMBOL_BELL);
   lv_obj_t *tabSettings = lv_tabview_add_tab(tv, LV_SYMBOL_SETTINGS);
 
   /* Populate each tab */
   ui_tab_wallet_create(tabWallet);
+  ui_tab_nft_create(tabNft);
   ui_tab_treaty_create(tabTreaty);
-  ui_tab_vote_create(tabVote);
   ui_tab_alerts_create(tabAlerts);
   ui_tab_node_create(tabSettings);  /* Node info lives in Settings now */
 }
@@ -277,9 +277,5 @@ void ui_shell_update_tabs(const GrudaWallet &wallet,
   ui_tab_wallet_update(wallet, balance);
   ui_tab_node_update(nodeState);
   ui_tab_treaty_refresh(treatyState);
-  if (votingState.selectedIndex >= 0 &&
-      votingState.selectedIndex < votingState.proposalCount) {
-    ui_tab_vote_show(votingState.proposals[votingState.selectedIndex]);
-  }
   ui_tab_alerts_refresh(alertState);
 }

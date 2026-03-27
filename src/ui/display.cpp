@@ -14,7 +14,10 @@ static SPIClass touchSPI(VSPI);
 static XPT2046_Touchscreen ts(TOUCH_SPI_CS);
 
 static lv_disp_draw_buf_t drawBuf;
-static lv_color_t buf1[SCREEN_W * 20]; /* 20-line draw buffer */
+/* Single 20-line draw buffer — ESP32 DRAM is tight with all modules.
+   20 lines * 240px * 2 bytes = 9,600 bytes. */
+#define DRAW_BUF_LINES 20
+static lv_color_t buf1[SCREEN_W * DRAW_BUF_LINES];
 static bool touchHasLast = false;
 static uint16_t touchLastX = 0;
 static uint16_t touchLastY = 0;
@@ -106,7 +109,7 @@ void display_init() {
 
   /* LVGL init */
   lv_init();
-  lv_disp_draw_buf_init(&drawBuf, buf1, NULL, SCREEN_W * 20);
+  lv_disp_draw_buf_init(&drawBuf, buf1, NULL, SCREEN_W * DRAW_BUF_LINES);
 
   /* Display driver */
   static lv_disp_drv_t dispDrv;
