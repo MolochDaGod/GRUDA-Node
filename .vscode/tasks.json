@@ -1,0 +1,53 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "PIO: Build",
+      "type": "shell",
+      "command": "pio run -d ${workspaceFolder}",
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "PIO: Upload (Flash to Device)",
+      "type": "shell",
+      "command": "pio run -d ${workspaceFolder} --target upload",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "PIO: Serial Monitor",
+      "type": "shell",
+      "command": "pio device monitor -d ${workspaceFolder} --baud 115200 --port COM5",
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "PIO: Upload + Monitor",
+      "type": "shell",
+      "command": "pio run -d ${workspaceFolder} --target upload && pio device monitor -d ${workspaceFolder} --baud 115200 --port COM5",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "PIO: Clean",
+      "type": "shell",
+      "command": "pio run -d ${workspaceFolder} --target clean",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Convert Images to C Headers",
+      "type": "shell",
+      "command": "pwsh -File ${workspaceFolder}/scripts/convert_images.ps1",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    }
+  ]
+}

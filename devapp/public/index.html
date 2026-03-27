@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GRUDA Node — DevApp</title>
+    <style>
+      :root {
+        --orange: #ff6600;
+        --orange-dk: #cc5200;
+        --orange-lt: #ff8833;
+        --gold: #d4a843;
+        --gold-lt: #f0d060;
+        --green: #00ff88;
+        --red: #ff4444;
+        --blue: #4488ff;
+        --yellow: #ffaa00;
+        --bg: #0a0a14;
+        --bg-card: #12121f;
+        --bg-surface: #1a1a2e;
+        --bg-input: #16213e;
+        --text: #ffffff;
+        --text-sec: #aaaabb;
+        --text-muted: #666677;
+        --border: #1e1e35;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      /* ── Header ─────────────────────────────────── */
+      header {
+        background: var(--bg-card);
+        border-bottom: 2px solid var(--orange);
+        padding: 0 16px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-shrink: 0;
+      }
+      .logo {
+        font-size: 20px;
+        font-weight: 900;
+        letter-spacing: 3px;
+        color: var(--orange);
+        text-shadow: 0 0 12px rgba(255, 102, 0, 0.5);
+      }
+      .logo-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+      .header-spacer {
+        flex: 1;
+      }
+      .status-pill {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: 12px;
+        color: var(--text-sec);
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--text-muted);
+        transition: background 0.3s;
+      }
+      .dot.green {
+        background: var(--green);
+        box-shadow: 0 0 6px var(--green);
+      }
+      .dot.orange {
+        background: var(--orange);
+        box-shadow: 0 0 6px var(--orange);
+      }
+      .dot.red {
+        background: var(--red);
+        box-shadow: 0 0 6px var(--red);
+      }
+
+      /* ── Main layout ─────────────────────────────── */
+      .main {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      /* ── Sidebar ─────────────────────────────────── */
+      aside {
+        width: 220px;
+        flex-shrink: 0;
+        background: var(--bg-card);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        padding: 12px 0;
+        overflow-y: auto;
+      }
+
+      .section-title {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        padding: 8px 16px 4px;
+      }
+
+      /* Device card */
+      .device-card {
+        margin: 4px 10px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .device-card label {
+        font-size: 11px;
+        color: var(--text-muted);
+        display: block;
+        margin-bottom: 4px;
+      }
+      .port-row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      select {
+        flex: 1;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        padding: 5px 8px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      select:focus {
+        outline: 1px solid var(--orange);
+      }
+
+      .icon-btn {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text-sec);
+        padding: 5px 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.15s;
+      }
+      .icon-btn:hover {
+        border-color: var(--orange);
+        color: var(--orange);
+      }
+
+      /* Process status */
+      .proc-status {
+        margin: 4px 10px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 12px;
+      }
+
+      .info-card {
+        margin: 8px 10px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 12px;
+      }
+      .info-card h4 {
+        font-size: 12px;
+        color: var(--orange);
+        margin-bottom: 8px;
+        letter-spacing: 0.5px;
+      }
+      .token-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .token-pill {
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        color: var(--text);
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 11px;
+      }
+      .mini-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        color: var(--text-sec);
+      }
+      .proc-name {
+        color: var(--orange);
+        font-weight: 600;
+        font-size: 13px;
+        margin-bottom: 2px;
+      }
+      .proc-label {
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+
+      /* Action buttons */
+      .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 4px 10px;
+      }
+
+      .btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg-surface);
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+        width: 100%;
+        text-align: left;
+      }
+      .btn:hover:not(:disabled) {
+        border-color: var(--orange);
+        background: rgba(255, 102, 0, 0.08);
+        color: var(--orange);
+      }
+      .btn:active:not(:disabled) {
+        transform: scale(0.97);
+      }
+      .btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      .btn.primary {
+        border-color: var(--orange);
+        background: rgba(255, 102, 0, 0.12);
+        color: var(--orange);
+      }
+      .btn.danger {
+        border-color: var(--red);
+        color: var(--red);
+        background: rgba(255, 68, 68, 0.08);
+      }
+      .btn.danger:hover:not(:disabled) {
+        background: rgba(255, 68, 68, 0.18);
+        border-color: var(--red);
+        color: var(--red);
+      }
+      .btn-icon {
+        font-size: 16px;
+        width: 20px;
+        text-align: center;
+      }
+
+      /* ── Terminal ─────────────────────────────────── */
+      .terminal-wrap {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--bg);
+      }
+
+      .terminal-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .terminal-title {
+        font-size: 12px;
+        color: var(--text-muted);
+        letter-spacing: 1px;
+        flex: 1;
+      }
+      .terminal-title span {
+        color: var(--orange);
+      }
+
+      #terminal {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 16px;
+        font-family: "Cascadia Code", "Consolas", monospace;
+        font-size: 12.5px;
+        line-height: 1.6;
+        background: #080810;
+      }
+      #terminal::-webkit-scrollbar {
+        width: 6px;
+      }
+      #terminal::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      #terminal::-webkit-scrollbar-thumb {
+        background: #2a2a40;
+        border-radius: 3px;
+      }
+
+      .line-stdout {
+        color: #ccccdd;
+      }
+      .line-stderr {
+        color: #ffaa44;
+      }
+      .line-start {
+        color: var(--orange);
+        font-weight: 600;
+      }
+      .line-done-ok {
+        color: var(--green);
+        font-weight: 600;
+      }
+      .line-done-err {
+        color: var(--red);
+        font-weight: 600;
+      }
+      .line-error {
+        color: var(--red);
+      }
+      .line-info {
+        color: var(--blue);
+      }
+      .line-killed {
+        color: var(--yellow);
+      }
+      .line-ts {
+        color: var(--text-muted);
+        font-size: 11px;
+        margin-right: 6px;
+      }
+
+      /* Progress bar */
+      .progress-bar {
+        height: 3px;
+        background: var(--bg-surface);
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+      .progress-inner {
+        height: 100%;
+        width: 0%;
+        background: var(--orange);
+        transition: width 0.3s;
+        box-shadow: 0 0 8px var(--orange);
+      }
+      .progress-inner.active {
+        width: 100%;
+        animation: indeterminate 1.4s infinite linear;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--orange),
+          var(--orange-lt),
+          transparent
+        );
+      }
+      @keyframes indeterminate {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(200%);
+        }
+      }
+
+      /* ── Footer ──────────────────────────────────── */
+      footer {
+        background: var(--bg-card);
+        border-top: 1px solid var(--border);
+        padding: 5px 16px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 11px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+      }
+      footer span.hi {
+        color: var(--orange);
+      }
+
+      /* clear btn */
+      .clear-btn {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--text-muted);
+        font-size: 11px;
+        padding: 2px 8px;
+        cursor: pointer;
+      }
+      .clear-btn:hover {
+        border-color: var(--orange);
+        color: var(--orange);
+      }
+
+      /* WS badge */
+      .ws-badge {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <header>
+      <div>
+        <div class="logo">GRUDGE</div>
+        <div class="logo-sub">Node DevApp</div>
+      </div>
+      <div class="header-spacer"></div>
+      <div class="status-pill">
+        <div class="dot" id="procDot"></div>
+        <span id="procLabel">Ready</span>
+      </div>
+      <div class="status-pill">
+        <div class="dot" id="wsDot" style="background: var(--red)"></div>
+        <span id="wsLabel">Disconnected</span>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <div class="main">
+      <!-- Sidebar -->
+      <aside>
+        <div class="section-title">Device</div>
+        <div class="device-card">
+          <label>COM Port</label>
+          <div class="port-row">
+            <select id="portSelect">
+              <option>COM5</option>
+            </select>
+            <button
+              class="icon-btn"
+              onclick="refreshPorts()"
+              title="Refresh ports"
+            >
+              ↺
+            </button>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top: 8px">Grudge Account</div>
+        <div class="info-card" id="accountCard">
+          <h4>Device Session</h4>
+          <div id="accountUser" style="color: var(--text); font-weight: 600; margin-bottom: 4px">— Not logged in —</div>
+          <div id="accountId" style="color: var(--text-sec); font-size: 11px; margin-bottom: 4px"></div>
+          <div id="accountEvent" style="color: var(--text-muted); font-size: 11px; margin-bottom: 8px"></div>
+          <button class="btn danger" onclick="deviceLogout()" id="btnLogout" style="padding: 6px 12px; font-size: 12px" disabled>
+            <span class="btn-icon">🚪</span> Log Out Device
+          </button>
+        </div>
+
+        <div class="section-title" style="margin-top: 8px">Status</div>
+        <div class="proc-status" id="procCard">
+          <div class="proc-label">Process</div>
+          <div class="proc-name" id="procNameLabel">— Idle —</div>
+        </div>
+
+        <div class="section-title" style="margin-top: 8px">Wallet</div>
+        <div class="info-card">
+          <h4>Supported Tokens</h4>
+          <div class="token-list" id="tokenList">
+            <span class="token-pill">Loading...</span>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <h4>Swap Model</h4>
+          <div class="mini-list" id="swapPolicyList">
+            <div>Loading policy...</div>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top: 8px">Actions</div>
+        <div class="btn-group">
+          <button class="btn primary" onclick="action('build')" id="btnBuild">
+            <span class="btn-icon">⚙</span> Build
+          </button>
+          <button class="btn" onclick="action('upload')" id="btnUpload">
+            <span class="btn-icon">⬆</span> Upload
+          </button>
+          <button class="btn" onclick="action('flash')" id="btnFlash">
+            <span class="btn-icon">⚡</span> Flash + Monitor
+          </button>
+          <button class="btn" onclick="action('monitor')" id="btnMonitor">
+            <span class="btn-icon">▶</span> Serial Monitor
+          </button>
+        </div>
+
+        <div class="section-title" style="margin-top: 8px">Tools</div>
+        <div class="btn-group">
+          <button class="btn" onclick="action('clean')" id="btnClean">
+            <span class="btn-icon">🗑</span> Clean Build
+          </button>
+          <button class="btn" onclick="action('images')" id="btnImages">
+            <span class="btn-icon">🖼</span> Convert Images
+          </button>
+        </div>
+
+        <div style="flex: 1"></div>
+
+        <div class="btn-group" style="padding-bottom: 8px">
+          <button class="btn danger" onclick="killProc()" id="btnKill" disabled>
+            <span class="btn-icon">■</span> Stop Process
+          </button>
+        </div>
+      </aside>
+
+      <!-- Terminal -->
+      <div class="terminal-wrap">
+        <div class="terminal-toolbar">
+          <div class="terminal-title">
+            OUTPUT — <span id="termTitle">Idle</span>
+          </div>
+          <button class="clear-btn" onclick="clearTerm()">Clear</button>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-inner" id="progress"></div>
+        </div>
+        <div id="terminal"></div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <span>GRUDA Node</span>
+      <span>v1.0.0</span>
+      <span>RacAlvin The Pirate King</span>
+      <span class="ws-badge">
+        <div class="dot" id="wsDot2" style="background: var(--red)"></div>
+        <span id="wsLabel2">WS Disconnected</span>
+      </span>
+    </footer>
+
+    <script>
+      /* ── WebSocket ───────────────────────────────────── */
+      let ws;
+      let running = false;
+      let runtimeConfig = null;
+
+      function connect() {
+        ws = new WebSocket(`ws://${location.host}`);
+
+        ws.onopen = () => {
+          setWsState(true);
+          log("info", "⬡ Connected to GRUDA DevApp server");
+          refreshPorts();
+        };
+
+        ws.onclose = () => {
+          setWsState(false);
+          setRunning(false);
+          setTimeout(connect, 2000);
+        };
+
+        ws.onerror = () => ws.close();
+
+        ws.onmessage = (e) => {
+          const msg = JSON.parse(e.data);
+          handleMsg(msg);
+        };
+      }
+
+      function handleMsg(msg) {
+        switch (msg.type) {
+          case "welcome":
+            log("info", `⬡ Project: ${msg.project}  |  v${msg.version}`);
+            if (msg.running) setRunning(true, msg.process);
+            break;
+          case "start":
+            setRunning(true, msg.name);
+            log("start", `▶ ${msg.name}: ${msg.cmd}`);
+            break;
+          case "stdout":
+            appendRaw("stdout", msg.data);
+            break;
+          case "stderr":
+            appendRaw("stderr", msg.data);
+            break;
+          case "done":
+            setRunning(false);
+            if (msg.code === 0) {
+              log("done-ok", `✔ ${msg.name} completed successfully (exit 0)`);
+            } else {
+              log("done-err", `✘ ${msg.name} exited with code ${msg.code}`);
+            }
+            break;
+          case "error":
+            log("error", msg.msg);
+            break;
+          case "info":
+            log("info", msg.msg);
+            break;
+          case "killed":
+            setRunning(false);
+            log("killed", "■ Process stopped by user");
+            break;
+          case "account":
+            updateAccountCard(msg.account);
+            break;
+        }
+      }
+
+      /* ── Terminal ────────────────────────────────────── */
+      const term = document.getElementById("terminal");
+
+      function ts() {
+        const d = new Date();
+        return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+      }
+
+      function log(type, text) {
+        const div = document.createElement("div");
+        div.className = `line-${type}`;
+        div.innerHTML = `<span class="line-ts">${ts()}</span>${escHtml(text)}`;
+        term.appendChild(div);
+        term.scrollTop = term.scrollHeight;
+      }
+
+      function appendRaw(type, raw) {
+        const lines = raw.split("\n");
+        lines.forEach((line, i) => {
+          if (!line && i === lines.length - 1) return; // skip trailing newline
+          const div = document.createElement("div");
+          div.className = `line-${type}`;
+          div.textContent = line;
+          term.appendChild(div);
+        });
+        term.scrollTop = term.scrollHeight;
+      }
+
+      function clearTerm() {
+        term.innerHTML = "";
+        log("info", "— Terminal cleared —");
+      }
+
+      function escHtml(s) {
+        return s
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      /* ── State ───────────────────────────────────────── */
+      const actionBtns = [
+        "btnBuild",
+        "btnUpload",
+        "btnFlash",
+        "btnMonitor",
+        "btnClean",
+        "btnImages",
+      ];
+
+      function setRunning(on, name) {
+        running = on;
+        const dot = document.getElementById("procDot");
+        const lbl = document.getElementById("procLabel");
+        const killBtn = document.getElementById("btnKill");
+        const nameLabel = document.getElementById("procNameLabel");
+        const progress = document.getElementById("progress");
+        const termTitle = document.getElementById("termTitle");
+
+        dot.className = "dot " + (on ? "orange" : "green");
+        lbl.textContent = on ? name || "Running…" : "Ready";
+        nameLabel.textContent = on ? name || "Running…" : "— Idle —";
+        killBtn.disabled = !on;
+        progress.className = on ? "progress-inner active" : "progress-inner";
+        if (!on) progress.style.width = "0%";
+        termTitle.textContent = on ? name || "Running" : "Idle";
+
+        actionBtns.forEach((id) => {
+          document.getElementById(id).disabled = on;
+        });
+      }
+
+      function setWsState(on) {
+        ["wsDot", "wsDot2"].forEach((id) => {
+          const d = document.getElementById(id);
+          d.style.background = on ? "var(--green)" : "var(--red)";
+          d.style.boxShadow = on ? "0 0 6px var(--green)" : "none";
+        });
+        document.getElementById("wsLabel").textContent = on
+          ? "Connected"
+          : "Disconnected";
+        document.getElementById("wsLabel2").textContent = on
+          ? "WS Connected"
+          : "WS Disconnected";
+      }
+
+      /* ── Actions ─────────────────────────────────────── */
+      async function action(type) {
+        const port = document.getElementById("portSelect").value;
+        await fetch(`/api/${type}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ port }),
+        });
+      }
+
+      async function killProc() {
+        await fetch("/api/kill", { method: "POST" });
+      }
+
+      async function refreshPorts() {
+        const sel = document.getElementById("portSelect");
+        try {
+          const r = await fetch("/api/ports");
+          const { ports } = await r.json();
+          const cur = sel.value;
+          sel.innerHTML = "";
+          if (!ports.length) {
+            sel.innerHTML = '<option value="">No ports found</option>';
+          } else {
+            ports.forEach((p) => {
+              const o = document.createElement("option");
+              o.value = o.textContent = p;
+              if (p === cur) o.selected = true;
+              sel.appendChild(o);
+            });
+          }
+        } catch (e) {
+          log("error", "Failed to fetch ports");
+        }
+      }
+
+      async function loadRuntimeConfig() {
+        try {
+          const response = await fetch("/api/runtime-config");
+          runtimeConfig = await response.json();
+
+          const tokenList = document.getElementById("tokenList");
+          tokenList.innerHTML = "";
+          (runtimeConfig.supportedTokens || []).forEach((token) => {
+            const item = document.createElement("span");
+            item.className = "token-pill";
+            item.textContent = `${token.symbol} · ${token.chain}`;
+            tokenList.appendChild(item);
+          });
+
+          const policyList = document.getElementById("swapPolicyList");
+          policyList.innerHTML = "";
+          (runtimeConfig.swapPolicy?.bestPractices || [])
+            .slice(0, 4)
+            .forEach((rule) => {
+              const row = document.createElement("div");
+              row.textContent = `• ${rule}`;
+              policyList.appendChild(row);
+            });
+
+          if (runtimeConfig.web3AuthClientId) {
+            log("info", "⬡ Web3Auth public client configuration detected");
+          } else {
+            log("error", "[AUTH] Web3Auth client configuration is missing");
+          }
+        } catch (error) {
+          log("error", "Failed to load runtime configuration");
+        }
+      }
+
+      /* ── Account Card ─────────────────────────────────── */
+      function updateAccountCard(acct) {
+        if (!acct) return;
+        const userEl = document.getElementById("accountUser");
+        const idEl = document.getElementById("accountId");
+        const eventEl = document.getElementById("accountEvent");
+        const logoutBtn = document.getElementById("btnLogout");
+
+        if (acct.loggedIn) {
+          userEl.textContent = acct.displayName || "Unknown";
+          userEl.style.color = "var(--green)";
+          idEl.textContent = acct.grudgeId || "";
+          logoutBtn.disabled = false;
+        } else {
+          userEl.textContent = "— Not logged in —";
+          userEl.style.color = "var(--text-muted)";
+          idEl.textContent = "";
+          logoutBtn.disabled = true;
+        }
+        eventEl.textContent = acct.lastEvent || "";
+      }
+
+      async function deviceLogout() {
+        const port = document.getElementById("portSelect").value;
+        try {
+          await fetch("/api/account/logout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ port }),
+          });
+          log("info", `⬡ Sent LOGOUT to device on ${port}`);
+        } catch (e) {
+          log("error", "Failed to send logout to device");
+        }
+      }
+
+      async function loadAccountStatus() {
+        try {
+          const r = await fetch("/api/account/status");
+          const acct = await r.json();
+          updateAccountCard(acct);
+        } catch (_) {}
+      }
+
+      /* ── Boot ────────────────────────────────────────── */
+      connect();
+      loadRuntimeConfig();
+      loadAccountStatus();
+    </script>
+  </body>
+</html>
