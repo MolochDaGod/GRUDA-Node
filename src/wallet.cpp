@@ -1,95 +1,69 @@
 #include "wallet.h"
 #include "config.h"
 #include <Preferences.h>
-#include <uECC.h>
 #include <esp_random.h>
-#include <mbedtls/sha256.h>
+
+/**
+ * Walletless Device Identity
+ * No private keys, no signing, no micro-ecc.
+ * Just a random UUID for hardware identification.
+ * User identity = Web3Auth session via Grudge Account.
+ */
 
 static Preferences prefs;
+static const char* NVS_KEY_UUID = "device_uuid";
 
-/* ── RNG callback for micro-ecc ───────────────────── */
-static int _rng_cb(uint8_t* dest, unsigned size) {
-    esp_fill_random(dest, size);
-    return 1;
-}
-
-/* ── Hex helper ───────────────────────────────────── */
-String wallet_pubkey_hex(const GrudaWallet& w) {
-    char hex[129];
-    for (int i = 0; i < 64; i++) {
-        sprintf(hex + i * 2, "%02x", w.publicKey[i]);
-    }
-    hex[128] = '\0';
+/* ── Generate a random hex UUID ──────────────────── */
+static String _generate_uuid() {
+    uint8_t buf[16];
+    esp_fill_random(buf, 16);
+    /* Set version 4 (random) UUID bits */
+    buf[6] = (buf[6] & 0x0F) | 0x40;
+    buf[8] = (buf[8] & 0x3F) | 0x80;
+    char hex[37];
+    snprintf(hex, sizeof(hex),
+             "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+             buf[0], buf[1], buf[2], buf[3],
+             buf[4], buf[5], buf[6], buf[7],
+             buf[8], buf[9], buf[10], buf[11],
+             buf[12], buf[13], buf[14], buf[15]);
     return String(hex);
 }
 
-/* ── Init: load or generate ───────────────────────── */
-bool wallet_init(GrudaWallet& w) {
-    uECC_set_rng(_rng_cb);
-    const struct uECC_Curve_t* curve = uECC_secp256k1();
+String wallet_pubkey_hex(const GrudaWallet& w) {
+    return w.deviceUUID;
+}
 
+/* ── Init: load or generate device UUID ───────────── */
+bool wallet_init(GrudaWallet& w) {
     prefs.begin(NVS_NAMESPACE, false);
 
-    /* Try to load existing keypair */
-    size_t privLen = prefs.getBytes(NVS_KEY_PRIVKEY, w.privateKey, 32);
-    size_t pubLen  = prefs.getBytes(NVS_KEY_PUBKEY, w.publicKey, 64);
-
-    if (privLen == 32 && pubLen == 64) {
-        Serial.println("[WALLET] Loaded keypair from NVS");
-        w.publicKeyHex = wallet_pubkey_hex(w);
+    String uuid = prefs.getString(NVS_KEY_UUID, "");
+    if (uuid.length() > 0) {
+        w.deviceUUID = uuid;
+        w.publicKeyHex = uuid;
         w.initialized = true;
         prefs.end();
+        Serial.printf("[DEVICE] UUID loaded: %s\n", uuid.c_str());
         return true;
     }
 
-    /* Generate new keypair */
-    Serial.println("[WALLET] Generating new keypair...");
-    if (!uECC_make_key(w.publicKey, w.privateKey, curve)) {
-        Serial.println("[WALLET] ERROR: Key generation failed");
-        w.initialized = false;
-        prefs.end();
-        return false;
-    }
-
-    /* Persist to NVS */
-    prefs.putBytes(NVS_KEY_PRIVKEY, w.privateKey, 32);
-    prefs.putBytes(NVS_KEY_PUBKEY, w.publicKey, 64);
+    /* Generate new UUID */
+    uuid = _generate_uuid();
+    prefs.putString(NVS_KEY_UUID, uuid);
     prefs.end();
 
-    w.publicKeyHex = wallet_pubkey_hex(w);
+    w.deviceUUID = uuid;
+    w.publicKeyHex = uuid;
     w.initialized = true;
-    Serial.printf("[WALLET] New keypair generated. Pub: %s\n", w.publicKeyHex.c_str());
+    Serial.printf("[DEVICE] New UUID generated: %s\n", uuid.c_str());
     return true;
 }
 
-/* ── Sign ─────────────────────────────────────────── */
-bool wallet_sign(const GrudaWallet& w, const uint8_t* msg, size_t msgLen,
-                 uint8_t sig[64]) {
-    if (!w.initialized) return false;
-
-    /* Hash the message first (sign the hash, not raw data) */
-    uint8_t hash[32];
-    mbedtls_sha256(msg, msgLen, hash, 0);
-
-    const struct uECC_Curve_t* curve = uECC_secp256k1();
-    return uECC_sign(w.privateKey, hash, 32, sig, curve) == 1;
-}
-
-/* ── Verify ───────────────────────────────────────── */
-bool wallet_verify(const uint8_t pubkey[64], const uint8_t* msg, size_t msgLen,
-                   const uint8_t sig[64]) {
-    uint8_t hash[32];
-    mbedtls_sha256(msg, msgLen, hash, 0);
-
-    const struct uECC_Curve_t* curve = uECC_secp256k1();
-    return uECC_verify(pubkey, hash, 32, sig, curve) == 1;
-}
-
-/* ── Factory reset ────────────────────────────────── */
+/* ── Factory reset ──────────────────────────────── */
 void wallet_wipe() {
     prefs.begin(NVS_NAMESPACE, false);
-    prefs.remove(NVS_KEY_PRIVKEY);
-    prefs.remove(NVS_KEY_PUBKEY);
+    prefs.clear();
     prefs.end();
-    Serial.println("[WALLET] Keypair wiped from NVS");
+    Serial.println("[DEVICE] Identity wiped from NVS");
 }

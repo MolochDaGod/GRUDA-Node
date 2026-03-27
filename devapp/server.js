@@ -8,6 +8,7 @@ require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
 const express = require("express");
 const WebSocket = require("ws");
 const { supportedTokens, swapPolicy } = require("./config/tokens");
+const { createRemoteJWKSet, jwtVerify } = require("jose");
 
 /* ── Config ────────────────────────────────────────── */
 const PROJECT_DIR = path.resolve(__dirname, "..");
@@ -292,6 +293,106 @@ app.get("/api/env-check", (_req, res) => {
     status[key] = Boolean(process.env[key]);
   }
   res.json({ ok: required.every((k) => process.env[k]), status });
+});
+
+/* ── Web3Auth JWT Verification ─────────────────────── */
+const JWKS_URL = process.env.WEB3_JWKS_Endpoint || "https://api-auth.web3auth.io/.well-known/jwks.json";
+let jwks = null;
+
+function getJWKS() {
+  if (!jwks) {
+    jwks = createRemoteJWKSet(new URL(JWKS_URL));
+  }
+  return jwks;
+}
+
+/**
+ * POST /api/auth/web3auth/verify
+ * Verifies a Web3Auth idToken and returns a Grudge session.
+ * Body: { idToken, verifier, verifierId }
+ */
+app.post("/api/auth/web3auth/verify", async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ ok: false, error: "Missing idToken" });
+    }
+
+    /* Verify JWT signature against Web3Auth JWKS */
+    const { payload } = await jwtVerify(idToken, getJWKS(), {
+      issuer: "https://api-auth.web3auth.io",
+    });
+
+    /* Extract user info from JWT claims */
+    const grudgeId = payload.sub || payload.wallet_address || "";
+    const email = payload.email || "";
+    const name = payload.name || payload.nickname || email.split("@")[0] || "User";
+
+    /* Create Grudge session (in production, call api.grudge-studio.com) */
+    const session = {
+      ok: true,
+      grudgeId: `GID-${grudgeId.substring(0, 16)}`,
+      displayName: name,
+      email,
+      token: idToken, /* Pass-through for device pairing */
+      expiresAt: payload.exp || 0,
+      provider: "web3auth",
+      web3AuthSub: payload.sub,
+    };
+
+    console.log(`[AUTH] Web3Auth verified: ${name} (${email})`);
+    broadcast({ type: "info", msg: `[AUTH] Web3Auth login: ${name}` });
+    res.json(session);
+  } catch (err) {
+    console.error(`[AUTH] Web3Auth verify failed: ${err.message}`);
+    res.status(401).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/auth/web3auth/pair
+ * Links a Web3Auth session to a device pairing code.
+ * Called by the web frontend after Web3Auth login.
+ * Body: { code, idToken, grudgeId, displayName }
+ */
+const pendingPairings = new Map(); /* code -> session */
+
+app.post("/api/auth/web3auth/pair", (req, res) => {
+  const { code, idToken, grudgeId, displayName } = req.body;
+  if (!code || !idToken) {
+    return res.status(400).json({ ok: false, error: "Missing code or token" });
+  }
+  pendingPairings.set(code.toUpperCase(), {
+    grudgeId,
+    displayName,
+    token: idToken,
+    expiresAt: Math.floor(Date.now() / 1000) + 86400,
+    createdAt: Date.now(),
+  });
+  /* Expire old pairings after 10 min */
+  setTimeout(() => pendingPairings.delete(code.toUpperCase()), 600000);
+  console.log(`[AUTH] Pairing code ${code} linked to ${displayName}`);
+  res.json({ ok: true });
+});
+
+/**
+ * GET /api/device/auth/poll?code=XXXXXX
+ * Device polls this to check if pairing code has been claimed.
+ */
+app.get("/api/device/auth/poll", (req, res) => {
+  const code = (req.query.code || "").toUpperCase();
+  const session = pendingPairings.get(code);
+  if (!session) {
+    return res.json({ status: "pending" });
+  }
+  pendingPairings.delete(code);
+  res.json({
+    status: "authorized",
+    grudgeId: session.grudgeId,
+    displayName: session.displayName,
+    token: session.token,
+    expiresAt: session.expiresAt,
+  });
 });
 
 app.post("/api/kill", (_req, res) => {

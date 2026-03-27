@@ -83,10 +83,8 @@
 #define TOUCH_SMOOTH_ALPHA_NUM 3
 #define TOUCH_SMOOTH_ALPHA_DEN 4
 
-/* ── NVS Keys ─────────────────────────────────────── */
+/* ── NVS Keys (walletless — no private keys stored) ── */
 #define NVS_NAMESPACE "gruda"
-#define NVS_KEY_PRIVKEY "wallet_priv"
-#define NVS_KEY_PUBKEY "wallet_pub"
 #define NVS_KEY_GRUDGEID "grudge_id"
 #define NVS_KEY_NODEID "node_id"
 

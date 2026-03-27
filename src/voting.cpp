@@ -69,23 +69,9 @@ bool voting_submit(const Proposal& proposal, VoteChoice choice,
     JsonDocument doc;
     doc["proposalId"] = proposal.id;
     doc["vote"] = (int)choice;
-    doc["nodeKey"] = wallet.publicKeyHex;
+    doc["deviceId"] = wallet.deviceUUID;
 
-    String payload;
-    serializeJson(doc, payload);
-
-    /* Sign the payload */
-    uint8_t sig[64];
-    if (!wallet_sign(wallet, (const uint8_t*)payload.c_str(), payload.length(), sig)) {
-        Serial.println("[VOTE] Signing failed");
-        return false;
-    }
-    char sigHex[129];
-    for (int i = 0; i < 64; i++) sprintf(sigHex + i * 2, "%02x", sig[i]);
-    sigHex[128] = '\0';
-
-    /* Re-build with signature included */
-    doc["sig"] = sigHex;
+    /* Walletless: auth token authenticates the vote, no device signing */
     String signedPayload;
     serializeJson(doc, signedPayload);
 

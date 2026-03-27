@@ -138,14 +138,8 @@ bool treaty_send_dm(const String& recipientId, const String& text,
     doc["text"] = text;
     doc["from"] = _grudgeId;
 
-    /* Sign the message text for authenticity */
-    uint8_t sig[64];
-    if (wallet_sign(wallet, (const uint8_t*)text.c_str(), text.length(), sig)) {
-        char sigHex[129];
-        for (int i = 0; i < 64; i++) sprintf(sigHex + i * 2, "%02x", sig[i]);
-        sigHex[128] = '\0';
-        doc["sig"] = sigHex;
-    }
+    /* Walletless: auth token authenticates the message, no device signing */
+    doc["authToken"] = _authToken;
 
     String out;
     serializeJson(doc, out);
@@ -177,14 +171,8 @@ bool treaty_send_channel(const String& channelId, const String& text,
     doc["text"]    = text;
     doc["from"]    = _grudgeId;
 
-    /* Sign */
-    uint8_t sig[64];
-    if (wallet_sign(wallet, (const uint8_t*)text.c_str(), text.length(), sig)) {
-        char sigHex[129];
-        for (int i = 0; i < 64; i++) sprintf(sigHex + i * 2, "%02x", sig[i]);
-        sigHex[128] = '\0';
-        doc["sig"] = sigHex;
-    }
+    /* Walletless: auth token authenticates, no device signing */
+    doc["authToken"] = _authToken;
 
     String out;
     serializeJson(doc, out);

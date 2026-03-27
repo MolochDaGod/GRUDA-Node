@@ -54,13 +54,13 @@ static void _chain_ws_event(WStype_t type, uint8_t* payload, size_t length) {
       Serial.println("[CHAIN] Connected to GRUDACHAIN");
       chainConnected = true;
       {
-        /* Authenticate with Grudge backend */
+      /* Authenticate with Grudge backend (walletless — device UUID only) */
         String auth = "{\"event\":\"auth\",\"grudgeId\":\"";
         auth += account_get_grudge_id(account);
         auth += "\",\"token\":\"";
         auth += account_get_token(account);
-        auth += "\",\"deviceKey\":\"";
-        auth += wallet.publicKeyHex;
+        auth += "\",\"deviceId\":\"";
+        auth += wallet.deviceUUID;
         auth += "\",\"ns\":\"";
         auth += WS_NS_CHAIN;
         auth += "\",\"platform\":\"ESP32-GRD17\",\"firmware\":\"";
@@ -156,7 +156,7 @@ static void lv_tick_task(void *) { lv_tick_inc(LV_TICK_PERIOD_MS); }
 
 /* ── Called by login screen on successful auth ───── */
 static void _start_main_ui() {
-  /* Initialize subsystems (wallet may already be init'd in DEV_MODE) */
+  /* Initialize device identity (UUID, no crypto keys) */
   if (!wallet.initialized) wallet_init(wallet);
   grd17_init(nodeState, GRD17_VALIDATOR_ID);
   treaty_init(treatyState);
@@ -258,10 +258,10 @@ void setup() {
   account_init(account);
 
 #if DEV_MODE
-  /* DEV MODE: skip backend auth, use wallet key as identity */
+  /* DEV MODE: skip Web3Auth, use device UUID as identity */
   Serial.println("[MAIN] *** DEV_MODE active — skipping auth gate ***");
   wallet_init(wallet);
-  account.grudgeId    = wallet.publicKeyHex.substring(0, 16);
+  account.grudgeId    = "DEV-" + wallet.deviceUUID.substring(0, 8);
   account.displayName = "DevNode";
   account.authToken   = "dev-local";
   account.loggedIn    = true;
