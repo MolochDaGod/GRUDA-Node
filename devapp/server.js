@@ -505,8 +505,9 @@ app.post("/api/images", (_req, res) => {
 });
 
 /* ── Crossmint NFT Integration ─────────────────── */
-const CROSSMINT_API = process.env.CROSSMINT_ENV === "production"
-  ? "https://www.crossmint.com/api" : "https://staging.crossmint.com/api";
+/* Default to production Crossmint API (mainnet) */
+const CROSSMINT_API = process.env.CROSSMINT_ENV === "staging"
+  ? "https://staging.crossmint.com/api" : "https://www.crossmint.com/api";
 const CROSSMINT_COLLECTION = process.env.CROSSMINT_COLLECTION_ID || "2397b172-1803-403f-9d30-4dc553776c58";
 const CROSSMINT_TEMPLATES = [
   "0100715c-1039-4a91-95c2-4ec9d6c53d76",
@@ -589,9 +590,11 @@ wss.on("connection", (ws) => {
 
 /* ── Start ─────────────────────────────────────────── */
 server.listen(PORT, "127.0.0.1", () => {
+  const env = process.env.CROSSMINT_ENV === "staging" ? "STAGING" : "PRODUCTION";
   console.log("\n╔══════════════════════════════════════╗");
-  console.log("║   GRUDA Node DevApp  v1.0.0          ║");
+  console.log("║   GRUDA Node DevApp  v1.1.0          ║");
   console.log("║   GRUDGE STUDIO — RacAlvin           ║");
+  console.log(`║   Environment: ${env.padEnd(21)}║`);
   console.log("╠══════════════════════════════════════╣");
   console.log(`║   http://localhost:${PORT}               ║`);
   console.log(`║   Project: ${path.basename(PROJECT_DIR)}              ║`);
