@@ -1,0 +1,658 @@
+/* ══════════════════════════════════════════════════════════════
+   Treaty Chat — Grudge Studio Theme
+   Colors matched to firmware WCS palette (include/theme.h)
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── WCS Palette ─────────────────────────── */
+  --wcs-orange:       #ff6600;
+  --wcs-orange-dk:    #cc5200;
+  --wcs-orange-lt:    #ff8833;
+  --wcs-red:          #ff4444;
+  --wcs-green:        #00ff88;
+  --wcs-blue:         #4488ff;
+  --wcs-gold:         #d4a843;
+  --wcs-gold-lt:      #f0d060;
+  --wcs-purple:       #aa44ff;
+
+  /* ── Backgrounds ─────────────────────────── */
+  --bg:               #0a0a14;
+  --bg-card:          #12121f;
+  --bg-surface:       #1a1a2e;
+  --bg-input:         #16213e;
+  --bg-hover:         #1e1e35;
+  --bg-active:        #252540;
+
+  /* ── Text ────────────────────────────────── */
+  --text:             #ffffff;
+  --text-sec:         #aaaabb;
+  --text-muted:       #666677;
+  --text-link:        var(--wcs-orange-lt);
+
+  /* ── Borders ─────────────────────────────── */
+  --border:           #1e1e35;
+  --border-active:    var(--wcs-orange);
+
+  /* ── Faction Colors ──────────────────────── */
+  --faction-crusade:  var(--wcs-orange);
+  --faction-legion:   var(--wcs-red);
+  --faction-fabled:   var(--wcs-blue);
+
+  /* ── Sizing ──────────────────────────────── */
+  --sidebar-w:        240px;
+  --members-w:        220px;
+  --header-h:         48px;
+  --compose-h:        68px;
+}
+
+/* ── Reset ─────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── App Shell ─────────────────────────────── */
+.treaty-app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ── Sidebar (Channel List) ────────────────── */
+.treaty-sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.treaty-sidebar__header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--header-h);
+}
+
+.treaty-sidebar__guild-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--wcs-orange), var(--wcs-orange-dk));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.treaty-sidebar__guild-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.treaty-sidebar__channels {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.treaty-sidebar__channels::-webkit-scrollbar { width: 4px; }
+.treaty-sidebar__channels::-webkit-scrollbar-thumb { background: var(--bg-surface); border-radius: 2px; }
+
+/* Channel category */
+.channel-category {
+  padding: 16px 16px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  cursor: default;
+}
+
+/* Channel button */
+.channel-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 16px);
+  margin: 1px 8px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.12s;
+  position: relative;
+}
+.channel-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-sec);
+}
+.channel-btn.active {
+  background: var(--bg-active);
+  color: var(--text);
+}
+.channel-btn__icon {
+  font-size: 18px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.channel-btn__name {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.channel-btn__badge {
+  background: var(--wcs-red);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+  min-width: 18px;
+  text-align: center;
+}
+.channel-btn__badge:empty { display: none; }
+.channel-btn--readonly .channel-btn__name { color: var(--text-muted); }
+.channel-btn--voice .channel-btn__icon { color: var(--wcs-green); }
+
+/* ── Sidebar Footer (User Info) ────────────── */
+.treaty-sidebar__footer {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+}
+
+.treaty-sidebar__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.treaty-sidebar__user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.treaty-sidebar__user-id {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ── Main Content Area ─────────────────────── */
+.treaty-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ── Header Bar ────────────────────────────── */
+.treaty-header {
+  height: var(--header-h);
+  min-height: var(--header-h);
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.treaty-header__channel-icon {
+  font-size: 20px;
+  color: var(--text-muted);
+}
+
+.treaty-header__channel-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.treaty-header__divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+}
+
+.treaty-header__topic {
+  font-size: 13px;
+  color: var(--text-muted);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.treaty-header__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-sec);
+}
+
+.treaty-header__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--wcs-red);
+  transition: background 0.3s;
+}
+.treaty-header__dot.connected { background: var(--wcs-green); box-shadow: 0 0 6px var(--wcs-green); }
+
+.treaty-header__members-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.treaty-header__members-toggle:hover { background: var(--bg-hover); color: var(--text); }
+.treaty-header__members-toggle.active { color: var(--text); }
+
+/* ── Messages Area ─────────────────────────── */
+.treaty-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.treaty-messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.treaty-messages__scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.treaty-messages__scroll::-webkit-scrollbar { width: 6px; }
+.treaty-messages__scroll::-webkit-scrollbar-thumb { background: var(--bg-surface); border-radius: 3px; }
+
+/* Welcome message */
+.treaty-messages__welcome {
+  padding: 16px 0 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.treaty-messages__welcome h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.treaty-messages__welcome p {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* Message bubble */
+.treaty-msg {
+  display: flex;
+  gap: 12px;
+  padding: 4px 0;
+  border-radius: 4px;
+}
+.treaty-msg:hover { background: rgba(255,255,255,0.02); }
+
+.treaty-msg__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.treaty-msg__body { flex: 1; min-width: 0; }
+
+.treaty-msg__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.treaty-msg__name {
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.treaty-msg__name:hover { text-decoration: underline; }
+.treaty-msg__name.crusade { color: var(--faction-crusade); }
+.treaty-msg__name.legion  { color: var(--faction-legion); }
+.treaty-msg__name.fabled  { color: var(--faction-fabled); }
+.treaty-msg__name.system  { color: var(--wcs-gold); }
+.treaty-msg__name.default { color: var(--text-sec); }
+
+.treaty-msg__time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.treaty-msg__text {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* Compact mode (same author consecutive) */
+.treaty-msg.compact { padding-left: 48px; }
+.treaty-msg.compact .treaty-msg__avatar { display: none; }
+.treaty-msg.compact .treaty-msg__header { display: none; }
+
+/* System messages */
+.treaty-msg.system-msg {
+  justify-content: center;
+  padding: 8px 0;
+}
+.treaty-msg.system-msg .treaty-msg__text {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* ── Compose Bar ───────────────────────────── */
+.treaty-compose {
+  padding: 0 16px 16px;
+}
+
+.treaty-compose__quick {
+  display: flex;
+  gap: 6px;
+  padding: 6px 0;
+  overflow-x: auto;
+}
+.treaty-compose__quick::-webkit-scrollbar { height: 0; }
+
+.treaty-compose__quick-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-card);
+  color: var(--text-sec);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s;
+}
+.treaty-compose__quick-btn:hover {
+  border-color: var(--wcs-orange);
+  color: var(--text);
+  background: rgba(255, 102, 0, 0.08);
+}
+
+.treaty-compose__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  transition: border-color 0.2s;
+}
+.treaty-compose__bar:focus-within { border-color: var(--wcs-orange); }
+
+.treaty-compose__input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  max-height: 120px;
+  line-height: 1.4;
+}
+.treaty-compose__input::placeholder { color: var(--text-muted); }
+
+.treaty-compose__send {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--wcs-orange);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.treaty-compose__send:hover { background: var(--wcs-orange-lt); }
+.treaty-compose__send:disabled { background: var(--bg-surface); cursor: default; }
+
+.treaty-compose--readonly {
+  padding: 12px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ── Members Panel ─────────────────────────── */
+.treaty-members {
+  width: var(--members-w);
+  min-width: var(--members-w);
+  background: var(--bg-card);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 16px 8px;
+  display: none;
+}
+.treaty-members.visible { display: block; }
+
+.treaty-members::-webkit-scrollbar { width: 4px; }
+.treaty-members::-webkit-scrollbar-thumb { background: var(--bg-surface); border-radius: 2px; }
+
+.treaty-members__group {
+  margin-bottom: 16px;
+}
+
+.treaty-members__group-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 8px 8px;
+}
+
+.treaty-member {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.treaty-member:hover { background: var(--bg-hover); }
+
+.treaty-member__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.treaty-member__name {
+  font-size: 13px;
+  font-weight: 500;
+}
+.treaty-member__name.crusade { color: var(--faction-crusade); }
+.treaty-member__name.legion  { color: var(--faction-legion); }
+.treaty-member__name.fabled  { color: var(--faction-fabled); }
+
+.treaty-member__status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--wcs-green);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ── Login Overlay ─────────────────────────── */
+.treaty-login {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  z-index: 1000;
+}
+
+.treaty-login__logo {
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: var(--wcs-orange);
+  text-shadow: 0 0 24px rgba(255, 102, 0, 0.4);
+}
+
+.treaty-login__sub {
+  font-size: 14px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.treaty-login__btn {
+  padding: 12px 32px;
+  border: 2px solid var(--wcs-orange);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--wcs-orange);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+}
+.treaty-login__btn:hover {
+  background: var(--wcs-orange);
+  color: #fff;
+}
+
+/* ── Embed Mode ────────────────────────────── */
+body.embed-mode .treaty-sidebar { display: none; }
+body.embed-mode .treaty-members { display: none; }
+body.embed-mode .treaty-header__members-toggle { display: none; }
+
+/* ── Mobile ────────────────────────────────── */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-w: 100vw;
+    --members-w: 100vw;
+  }
+
+  .treaty-sidebar {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.2s;
+  }
+  .treaty-sidebar.open { transform: translateX(0); }
+
+  .treaty-members {
+    position: fixed;
+    right: 0; top: 0; bottom: 0;
+    z-index: 100;
+    transform: translateX(100%);
+    transition: transform 0.2s;
+  }
+  .treaty-members.visible { transform: translateX(0); }
+
+  .treaty-header__hamburger { display: flex !important; }
+}
+
+.treaty-header__hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* ── Scrollbar global ──────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg-surface); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--bg-hover); }
+
+/* ── Animations ────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.treaty-msg { animation: fadeIn 0.15s ease-out; }

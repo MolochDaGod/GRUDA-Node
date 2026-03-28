@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Treaty Chat — Grudge Studio</title>
+    <meta name="description" content="Treaty Chat — Grudge Studio guild chat. Talk with your faction, coordinate treaties, and chat across every Grudge game." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬡</text></svg>" />
+    <link rel="stylesheet" href="treaty-theme.css" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Treaty Chat — Grudge Studio" />
+    <meta property="og:description" content="Guild chat for Grudge Warlords. Faction-colored, treaty-signed, node-connected." />
+    <meta property="og:type" content="website" />
+  </head>
+  <body>
+
+    <!-- ── Login Overlay ────────────────────────────────── -->
+    <div class="treaty-login" id="loginOverlay">
+      <div class="treaty-login__logo">TREATY CHAT</div>
+      <div class="treaty-login__sub">Grudge Studio Guild</div>
+      <button class="treaty-login__btn" id="loginBtn">Sign in with Grudge ID</button>
+      <div style="margin-top:8px;">
+        <button class="treaty-login__btn" id="guestBtn" style="border-color:var(--text-muted);color:var(--text-muted);font-size:13px;padding:8px 24px;">
+          Continue as Guest
+        </button>
+      </div>
+      <div id="loginError" style="color:var(--wcs-red);font-size:13px;margin-top:8px;display:none;"></div>
+    </div>
+
+    <!-- ── Chat Container ───────────────────────────────── -->
+    <div id="app"></div>
+
+    <!-- ── Boot Script ──────────────────────────────────── -->
+    <script type="module">
+      import { TreatyChat } from "./treaty-sdk.js";
+      import { TreatyUI }   from "./treaty-ui.js";
+
+      /* ── Parse URL params ─────────────────────── */
+      const params   = new URLSearchParams(location.search);
+      const embedMode = params.get("embed") === "true";
+      const paramChannel = params.get("channel");
+      const paramToken   = params.get("token");
+      const paramGrudgeId = params.get("grudgeId");
+      const paramName    = params.get("name");
+      const paramFaction = params.get("faction");
+
+      /* ── Session storage keys ─────────────────── */
+      const SK_TOKEN   = "treaty_auth_token";
+      const SK_GRUDGEID = "treaty_grudge_id";
+      const SK_NAME    = "treaty_display_name";
+      const SK_FACTION = "treaty_faction";
+
+      /* ── Check existing session ───────────────── */
+      let authToken   = paramToken   || sessionStorage.getItem(SK_TOKEN)   || "";
+      let grudgeId    = paramGrudgeId || sessionStorage.getItem(SK_GRUDGEID) || "";
+      let displayName = paramName    || sessionStorage.getItem(SK_NAME)    || "";
+      let faction     = paramFaction || sessionStorage.getItem(SK_FACTION) || "";
+
+      const loginOverlay = document.getElementById("loginOverlay");
+      const loginBtn     = document.getElementById("loginBtn");
+      const guestBtn     = document.getElementById("guestBtn");
+      const loginError   = document.getElementById("loginError");
+
+      /* ── Auth: Check for callback token from id.grudge-studio.com ── */
+      if (location.hash) {
+        try {
+          const hashParams = new URLSearchParams(location.hash.substring(1));
+          if (hashParams.get("token")) {
+            authToken   = hashParams.get("token");
+            grudgeId    = hashParams.get("grudgeId") || grudgeId;
+            displayName = hashParams.get("name") || displayName;
+            faction     = hashParams.get("faction") || faction;
+            /* Clean URL */
+            history.replaceState(null, "", location.pathname + location.search);
+          }
+        } catch (_) {}
+      }
+
+      /* ── Boot chat if we have credentials ─────── */
+      function bootChat() {
+        /* Save session */
+        sessionStorage.setItem(SK_TOKEN, authToken);
+        sessionStorage.setItem(SK_GRUDGEID, grudgeId);
+        sessionStorage.setItem(SK_NAME, displayName);
+        sessionStorage.setItem(SK_FACTION, faction);
+
+        loginOverlay.style.display = "none";
+
+        const chat = new TreatyChat({
+          grudgeId,
+          authToken,
+          displayName,
+          faction,
+          guild: "grudge-studio-default",
+          apiBase: location.origin,
+        });
+
+        const ui = new TreatyUI(chat, document.getElementById("app"), {
+          embed: embedMode,
+          channel: paramChannel || undefined,
+        });
+
+        chat.connect();
+
+        /* Expose for debugging and GDevelop postMessage bridge */
+        window.__treatyChat = chat;
+        window.__treatyUI = ui;
+
+        /* postMessage bridge for iframe embeds */
+        window.addEventListener("message", (evt) => {
+          if (!evt.data || evt.data.type !== "treaty") return;
+          const { action, payload } = evt.data;
+          if (action === "send")    chat.sendChannel(payload.channel || chat.activeChannel, payload.text);
+          if (action === "switch")  chat.switchChannel(payload.channel);
+          if (action === "dm")      chat.sendDM(payload.to, payload.text);
+        });
+      }
+
+      /* ── Auto-boot if credentials exist ───────── */
+      if (authToken && grudgeId) {
+        bootChat();
+      } else if (embedMode && paramGrudgeId) {
+        /* Embed mode with passed credentials */
+        bootChat();
+      }
+
+      /* ── Login button → redirect to id.grudge-studio.com ── */
+      loginBtn.addEventListener("click", () => {
+        const returnUrl = encodeURIComponent(location.href.split("#")[0]);
+        window.location.href = `https://id.grudge-studio.com/auth?app=treaty-chat&redirect=${returnUrl}`;
+      });
+
+      /* ── Guest button → generate temporary guest ID ─────── */
+      guestBtn.addEventListener("click", () => {
+        grudgeId    = "GUEST-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+        authToken   = "guest-" + Date.now();
+        displayName = "Guest " + grudgeId.substring(6, 10);
+        faction     = ["Crusade", "Legion", "Fabled"][Math.floor(Math.random() * 3)];
+        bootChat();
+      });
+
+      /* ── Listen for auth postMessage (from popup/iframe login) ── */
+      window.addEventListener("message", (evt) => {
+        if (evt.data && evt.data.type === "grudge_auth") {
+          authToken   = evt.data.token   || authToken;
+          grudgeId    = evt.data.grudgeId || grudgeId;
+          displayName = evt.data.name     || displayName;
+          faction     = evt.data.faction  || faction;
+          if (grudgeId && authToken) bootChat();
+        }
+      });
+    </script>
+  </body>
+</html>
