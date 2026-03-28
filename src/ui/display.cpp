@@ -88,9 +88,25 @@ void display_init() {
   tft.init();
   tft.setRotation(0); /* portrait 240x320 */
 
-  /* Gamma correction — reset to curve 1 for consistent color on clone panels */
-  tft.writecommand(0x26); /* ILI9341_GAMMASET */
-  tft.writedata(0x01);    /* Gamma curve 1 (default/sRGB) */
+  /* ── ILI9341 Color Calibration for CYD clone panels ───── */
+  tft.writecommand(0x26); /* GAMMASET */
+  tft.writedata(0x01);    /* Gamma curve 1 */
+
+  /* Positive gamma — tuned for rich WCS orange/gold on cheap TN panels */
+  tft.writecommand(0xE0); /* GMCTRP1 */
+  const uint8_t pgamma[] = {
+    0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08, 0x4E, 0xF1,
+    0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00
+  };
+  for (uint8_t i = 0; i < 15; i++) tft.writedata(pgamma[i]);
+
+  /* Negative gamma */
+  tft.writecommand(0xE1); /* GMCTRN1 */
+  const uint8_t ngamma[] = {
+    0x00, 0x0E, 0x14, 0x03, 0x11, 0x07, 0x31, 0xC1,
+    0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F
+  };
+  for (uint8_t i = 0; i < 15; i++) tft.writedata(ngamma[i]);
 
   tft.fillScreen(TFT_BLACK);
 

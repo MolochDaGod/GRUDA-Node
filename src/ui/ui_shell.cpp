@@ -154,8 +154,9 @@ static void _create_status_bar(lv_obj_t *parent) {
   lv_obj_set_style_radius(statusBar, 0, 0);
   lv_obj_set_style_bg_color(statusBar, lv_color_hex(WCS_STATUSBAR_BG), 0);
   lv_obj_set_style_bg_opa(statusBar, LV_OPA_COVER, 0);
+  lv_obj_set_style_border_width(statusBar, 1, 0);
   lv_obj_set_style_border_side(statusBar, LV_BORDER_SIDE_BOTTOM, 0);
-  lv_obj_set_style_border_color(statusBar, lv_color_hex(WCS_BG_SURFACE), 0);
+  lv_obj_set_style_border_color(statusBar, lv_color_hex(WCS_ORANGE_DARK), 0);
 
   /* WiFi — left */
   lblWifi = lv_label_create(statusBar);
