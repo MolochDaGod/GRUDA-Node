@@ -1,6 +1,8 @@
 #include "theme.h"
+#include "config.h"
 #include "img_loader.h"
 #include <lvgl.h>
+#include <WiFi.h>
 
 /**
  * NFT Gallery Tab — Fetches and displays NFT artwork on ESP32.
@@ -49,22 +51,59 @@ static int       _nftIndex = 0;
 static LoadedImage _currentImg = {};
 static bool      _loading = false;
 
-/* ── Demo NFTs (used until backend provides real list) ─── */
-static void _load_demo_nfts() {
-    _nftCount = 5;
-    /* These point to Grudge object storage — replace with real URLs */
-    const char* names[]       = { "Grudge Skull #001", "Pirate King Helm", "GRUDA Coin Gold", "Warlord Shield", "Chain Node Badge" };
-    const char* collections[] = { "Grudge OG", "Pirate Loot", "GRUDA Tokens", "Warlord Gear", "Node Badges" };
-    const char* chains[]      = { "solana", "solana", "polygon", "solana", "polygon" };
+/* ── Fetch real NFTs from Crossmint via Grudge backend ── */
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
+#include <ArduinoJson.h>
 
-    for (int i = 0; i < _nftCount; i++) {
-        strncpy(_nfts[i].name, names[i], sizeof(_nfts[i].name) - 1);
-        strncpy(_nfts[i].collection, collections[i], sizeof(_nfts[i].collection) - 1);
-        strncpy(_nfts[i].chain, chains[i], sizeof(_nfts[i].chain) - 1);
-        /* Backend should serve these as 160x160 RGB565 or JPEG */
-        snprintf(_nfts[i].imageUrl, sizeof(_nfts[i].imageUrl),
-                 "https://api.grudge-studio.com/objects/nft/%d.rgb565", i);
+static void _fetch_crossmint_nfts() {
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("[NFT] WiFi not connected, using fallback");
+        return;
     }
+
+    WiFiClientSecure client;
+    client.setInsecure();
+    HTTPClient http;
+
+    /* Fetch from Grudge backend which proxies to Crossmint */
+    String nftUrl = String("https://") + API_HOST + "/nfts";
+    http.begin(client, nftUrl);
+    http.setTimeout(10000);
+    int code = http.GET();
+
+    if (code != 200) {
+        Serial.printf("[NFT] Fetch failed: HTTP %d\n", code);
+        http.end();
+        return;
+    }
+
+    String body = http.getString();
+    http.end();
+
+    JsonDocument doc;
+    if (deserializeJson(doc, body)) {
+        Serial.println("[NFT] JSON parse failed");
+        return;
+    }
+
+    JsonArray arr = doc["nfts"].as<JsonArray>();
+    _nftCount = 0;
+    for (JsonObject nft : arr) {
+        if (_nftCount >= NFT_MAX_ITEMS) break;
+        const char* name = nft["name"] | "Untitled";
+        const char* image = nft["image"] | "";
+        const char* chain = nft["chain"] | "polygon";
+        const char* desc = nft["description"] | "";
+
+        strncpy(_nfts[_nftCount].name, name, sizeof(_nfts[0].name) - 1);
+        strncpy(_nfts[_nftCount].collection, "Grudge Studio", sizeof(_nfts[0].collection) - 1);
+        strncpy(_nfts[_nftCount].chain, chain, sizeof(_nfts[0].chain) - 1);
+        strncpy(_nfts[_nftCount].imageUrl, image, sizeof(_nfts[0].imageUrl) - 1);
+        _nftCount++;
+    }
+
+    Serial.printf("[NFT] Loaded %d NFTs from Crossmint\n", _nftCount);
 }
 
 /* ── Update display for current NFT ──────────────────── */
@@ -229,9 +268,12 @@ void ui_tab_nft_create(lv_obj_t* parent) {
     lv_label_set_text(nLbl, "Next " LV_SYMBOL_RIGHT);
     lv_obj_center(nLbl);
 
-    /* Load demo NFTs and show first */
-    _load_demo_nfts();
+    /* Fetch real NFTs from Crossmint via backend */
+    _fetch_crossmint_nfts();
     _update_info();
-    /* Don't auto-fetch on tab create — user navigates to trigger load */
-    lv_label_set_text(lblStatus, "Tap Next to load");
+    if (_nftCount == 0) {
+        lv_label_set_text(lblStatus, "No NFTs — check connection");
+    } else {
+        lv_label_set_text(lblStatus, "Tap Next to view");
+    }
 }

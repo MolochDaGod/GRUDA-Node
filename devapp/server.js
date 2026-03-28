@@ -504,7 +504,75 @@ app.post("/api/images", (_req, res) => {
   res.json({ ok });
 });
 
-/* ── WebSocket Connection ──────────────────────────── */
+/* ── Crossmint NFT Integration ─────────────────── */
+const CROSSMINT_API = process.env.CROSSMINT_ENV === "production"
+  ? "https://www.crossmint.com/api" : "https://staging.crossmint.com/api";
+const CROSSMINT_COLLECTION = process.env.CROSSMINT_COLLECTION_ID || "2397b172-1803-403f-9d30-4dc553776c58";
+const CROSSMINT_TEMPLATES = [
+  "0100715c-1039-4a91-95c2-4ec9d6c53d76",
+  "b7aa8645-f224-479e-abc9-b26bc3760fdf",
+];
+
+async function crossmintFetch(urlPath) {
+  const apiKey = process.env.CROSSMINT_API_KEY;
+  if (!apiKey) return { error: "CROSSMINT_API_KEY not configured" };
+  const res = await fetch(`${CROSSMINT_API}${urlPath}`, {
+    headers: { "X-API-KEY": apiKey, Accept: "application/json" },
+  });
+  if (!res.ok) return { error: `Crossmint ${res.status}` };
+  return res.json();
+}
+
+/**
+ * GET /api/nfts
+ * Returns NFT list from Crossmint templates, normalized for device display.
+ * The ESP32 fetches this to populate the NFT Gallery tab.
+ */
+app.get("/api/nfts", async (_req, res) => {
+  try {
+    const nfts = [];
+    for (const tid of CROSSMINT_TEMPLATES) {
+      const t = await crossmintFetch(
+        `/2022-06-09/collections/${CROSSMINT_COLLECTION}/templates/${tid}`
+      );
+      if (t.error) continue;
+      const meta = t.metadata || {};
+      let imageUrl = meta.image || "";
+      /* Resolve IPFS URLs to HTTP gateway for device fetch */
+      if (imageUrl.startsWith("ipfs://")) {
+        imageUrl = "https://ipfs.crossmint.com/" + imageUrl.slice(7);
+      }
+      nfts.push({
+        templateId: t.templateId || tid,
+        name: meta.name || "Untitled",
+        description: meta.description || "",
+        image: imageUrl,
+        collection: CROSSMINT_COLLECTION,
+        chain: "polygon",
+        supply: t.supply || {},
+      });
+    }
+    res.json({ ok: true, count: nfts.length, nfts });
+  } catch (err) {
+    console.error(`[NFT] Crossmint fetch error: ${err.message}`);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/nfts/collection
+ * Returns all minted NFTs in the collection (paginated).
+ */
+app.get("/api/nfts/collection", async (req, res) => {
+  const page = req.query.page || 1;
+  const perPage = req.query.perPage || 20;
+  const data = await crossmintFetch(
+    `/2022-06-09/collections/${CROSSMINT_COLLECTION}/nfts?page=${page}&perPage=${perPage}`
+  );
+  res.json(data);
+});
+
+/* ── WebSocket Connection ────────────────────── */
 wss.on("connection", (ws) => {
   console.log("[WS] Client connected");
   ws.send(
