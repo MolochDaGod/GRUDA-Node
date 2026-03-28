@@ -90,7 +90,12 @@ export class TreatyUI {
     this.$sidebar = el("aside", "treaty-sidebar");
 
     const sidebarHeader = el("div", "treaty-sidebar__header");
-    sidebarHeader.appendChild(el("div", "treaty-sidebar__guild-icon", "⬡"));
+    const guildIcon = el("div", "treaty-sidebar__guild-icon");
+    const guildImg = document.createElement("img");
+    guildImg.src = "logo.png";
+    guildImg.alt = "Grudge";
+    guildIcon.appendChild(guildImg);
+    sidebarHeader.appendChild(guildIcon);
     sidebarHeader.appendChild(el("div", "treaty-sidebar__guild-name", "Grudge Studio"));
     this.$sidebar.appendChild(sidebarHeader);
 

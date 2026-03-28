@@ -1,5 +1,5 @@
 #include "boot_splash.h"
-#include "img_wallet_intro.h"
+#include "img_grudge_logo.h"
 #include "theme.h"
 #include <lvgl.h>
 
@@ -11,20 +11,15 @@ static lv_timer_t *introAnim = nullptr;
 static uint8_t introFrame = 0;
 static uint8_t bootProgress = 0;
 
-/* ── Intro animation callback ─────────────────────── */
+/* ── Intro animation callback (unused for static test card) ─ */
 static void _intro_anim_cb(lv_timer_t *) {
-  if (!imgIntro)
-    return;
-  introFrame = (introFrame + 1) % WALLET_INTRO_FRAMES;
-  lv_img_set_src(imgIntro, wallet_intro_frames[introFrame]);
+  /* No-op for color test — will be restored for production splash */
 }
 
 static void _draw_intro(lv_obj_t *parent) {
   imgIntro = lv_img_create(parent);
-  lv_img_set_src(imgIntro, wallet_intro_frames[0]);
-  lv_obj_align(imgIntro, LV_ALIGN_CENTER, 0, 0);
-  introFrame = 0;
-  introAnim = lv_timer_create(_intro_anim_cb, 75, nullptr);
+  lv_img_set_src(imgIntro, &grudge_logo_dsc);
+  lv_obj_align(imgIntro, LV_ALIGN_CENTER, 0, -30);
 }
 
 /* ── Public API ───────────────────────────────────── */

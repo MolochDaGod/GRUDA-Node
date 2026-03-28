@@ -84,17 +84,18 @@ body {
 }
 
 .treaty-sidebar__guild-icon {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--wcs-orange), var(--wcs-orange-dk));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 900;
-  color: var(--text);
+  overflow: hidden;
   flex-shrink: 0;
+}
+
+.treaty-sidebar__guild-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .treaty-sidebar__guild-name {
@@ -567,6 +568,14 @@ body {
   justify-content: center;
   gap: 24px;
   z-index: 1000;
+}
+
+.treaty-login__icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(255, 102, 0, 0.5));
 }
 
 .treaty-login__logo {

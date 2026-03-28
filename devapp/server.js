@@ -504,6 +504,45 @@ app.post("/api/images", (_req, res) => {
   res.json({ ok });
 });
 
+/* ── Character Card / Race Images ─────────────── */
+const RACES_DIR = path.join(PROJECT_DIR, "assets", "races");
+const VALID_RACES = ["undead", "barbarian", "dwarf", "elf", "human", "orc"];
+
+/**
+ * GET /api/character/races
+ * Returns list of available races with image URLs.
+ */
+app.get("/api/character/races", (_req, res) => {
+  res.json({
+    races: VALID_RACES.map((r) => ({
+      id: r,
+      name: r.charAt(0).toUpperCase() + r.slice(1),
+      image: `/api/character/${r}/image`,
+    })),
+  });
+});
+
+/**
+ * GET /api/character/:race/image
+ * Serves the race card PNG image for device display.
+ * ESP32 fetches this via img_loader.
+ */
+app.get("/api/character/:race/image", (req, res) => {
+  const race = req.params.race.toLowerCase();
+  if (!VALID_RACES.includes(race)) {
+    return res.status(404).json({ error: "Unknown race" });
+  }
+  const imgPath = path.join(RACES_DIR, `${race}.png`);
+  if (!fs.existsSync(imgPath)) {
+    return res.status(404).json({ error: "Image not found" });
+  }
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("X-Img-Width", "240");
+  res.setHeader("X-Img-Height", "320");
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  fs.createReadStream(imgPath).pipe(res);
+});
+
 /* ── Crossmint NFT Integration ─────────────────── */
 /* Default to production Crossmint API (mainnet) */
 const CROSSMINT_API = process.env.CROSSMINT_ENV === "staging"
