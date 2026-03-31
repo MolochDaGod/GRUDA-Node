@@ -4,6 +4,7 @@
 #include <lvgl.h>
 
 #include "account.h"
+#include "ai_admin.h"
 #include "alerts.h"
 #include "boot_splash.h"
 #include "compress.h"
@@ -15,13 +16,19 @@
 #include "theme.h"
 #include "treaty.h"
 #include "ui_shell.h"
+#include "voice_bt.h"
 #include "voting.h"
 #include "device_api.h"
 #include "grudgeos.h"
 #include "img_loader.h"
 #include "wallet.h"
 
-/* Login screen (src/ui/screen_login.cpp) */
+/* Setup screens */
+extern void wifi_setup_show();
+extern void wifi_setup_destroy();
+extern bool wifi_try_saved_networks();
+extern void account_setup_show(GrudgeAccount &acct, GrudaWallet &wallet);
+extern void account_setup_destroy();
 extern void login_screen_show(GrudgeAccount &acct);
 extern void login_screen_destroy();
 
@@ -33,19 +40,40 @@ static TreatyState treatyState;
 static VotingState votingState;
 static AlertState alertState;
 static GrudgeOSState grudgeosState;
+static VoiceBTState voiceBTState;
+static AIAdminState aiAdminState;
+static AIAdminContext aiAdminCtx;
 
 static unsigned long lastTick = 0;
 static unsigned long lastUISync = 0;
 static unsigned long lastNodeBroadcast = 0;
+static unsigned long lastHeapCheck = 0;
 static bool mainUIReady = false;
 
 /* ── GrudaChain WebSocket (for node state broadcast) ─ */
 static WebSocketsClient wsChain;
 static bool chainConnected = false;
 
-/* ── Touch Diagnostic Mode ───────────────────── */
+/* ── Touch Diagnostic Mode ───────────────── */
 bool touchDiagMode = false;
 static String serialCmdBuf;
+
+/* ── Voice tab externs ────────────────────── */
+extern void ui_tab_voice_set_context(VoiceBTState* vbt, AIAdminState* ai);
+extern void ui_tab_voice_refresh(const VoiceBTState& vbt, const AIAdminState& ai);
+
+/* ── BLE voice callback (called from BLE RX on any core) ── */
+void _on_voice_text(const String& text) {
+  String response = ai_admin_process(aiAdminState, text);
+
+  /* Send response back to phone via BLE */
+  voice_bt_send_json("ai_response", response);
+
+  /* Announce to treaty #node-chat */
+  String chatMsg = "[VOICE] " + text + " -> " + response;
+  if (chatMsg.length() > 200) chatMsg = chatMsg.substring(0, 197) + "...";
+  treaty_send_channel(CH_NODE_CHAT, chatMsg, wallet);
+}
 
 /* ── GrudaChain WS event handler ──────────────────── */
 static void _chain_ws_event(WStype_t type, uint8_t* payload, size_t length) {
@@ -187,13 +215,29 @@ static void _start_main_ui() {
   extern void ui_tab_treaty_set_context(TreatyState*, const GrudaWallet*);
   ui_tab_treaty_set_context(&treatyState, &wallet);
 
+  /* Initialize AI Admin router */
+  aiAdminCtx.account = &account;
+  aiAdminCtx.wallet  = &wallet;
+  aiAdminCtx.treaty  = &treatyState;
+  aiAdminCtx.node    = &nodeState;
+  ai_admin_init(aiAdminState, aiAdminCtx);
+
+  /* Initialize BLE Voice service */
+  String bleSuffix = String(account_get_grudge_id(account)).substring(0, 6);
+  voice_bt_init(voiceBTState, bleSuffix);
+  voice_bt_set_callback(_on_voice_text);
+  voice_bt_start_advertising();
+
+  /* Set voice tab context */
+  ui_tab_voice_set_context(&voiceBTState, &aiAdminState);
+
   /* Build main UI */
   ui_shell_set_account(&account);
   ui_shell_create();
   screensaver_reset_timer();
 
   ui_shell_update_tabs(wallet, nodeState, treatyState, votingState, alertState,
-                       0.0f);
+                       voiceBTState, aiAdminState, 0.0f);
 
   /* Show logged-in display name instead of raw pubkey */
   ui_shell_set_grudge_id(account_get_display_name(account));
@@ -219,10 +263,49 @@ static void _start_main_ui() {
   discord_post_embed("Node Boot", bootMsg, 0x00FF88);
 }
 
-/* Global callback for login screen success */
+/* Global callback for login/account setup success */
 void on_login_success() { _start_main_ui(); }
 
-/* ── Setup ────────────────────────────────────────── */
+/* Callback from WiFi setup screen — WiFi connected, proceed to account check */
+void on_wifi_connected() {
+  account_init(account);
+  if (account_resume(account)) {
+    Serial.println("[MAIN] Session resumed after WiFi setup");
+    _start_main_ui();
+  } else {
+    /* Show account setup (create / pair / reset) */
+    account_setup_show(account, wallet);
+  }
+}
+
+/* ── Heap monitoring + cleanup ────────────────────── */
+static void _heap_check() {
+  uint32_t freeHeap = ESP.getFreeHeap();
+  uint32_t minHeap  = esp_get_minimum_free_heap_size();
+  Serial.printf("[HEAP] Free: %uKB | Watermark: %uKB | LVGL: ",
+                freeHeap / 1024, minHeap / 1024);
+
+  lv_mem_monitor_t mon;
+  lv_mem_monitor(&mon);
+  Serial.printf("%u%% used, %u%% frag\n", mon.used_pct, mon.frag_pct);
+
+  /* Low-heap cleanup */
+  if (freeHeap < LOW_HEAP_THRESHOLD) {
+    Serial.println("[HEAP] LOW — running cleanup");
+
+    /* Trim old treaty messages */
+    if (treatyState.messageCount > 10) {
+      uint8_t drop = treatyState.messageCount - 10;
+      for (uint8_t i = 0; i < treatyState.messageCount - drop; i++) {
+        treatyState.messages[i] = treatyState.messages[i + drop];
+      }
+      treatyState.messageCount -= drop;
+      Serial.printf("[HEAP] Dropped %u old treaty msgs\n", drop);
+    }
+  }
+}
+
+/* ── Setup ──────────────────────────────────────── */
 void setup() {
   Serial.begin(115200);
   Serial.println("\n═══════════════════════════════════════");
@@ -245,52 +328,67 @@ void setup() {
   boot_splash_show();
   lv_timer_handler();
 
-  boot_splash_set_progress(30, "Connecting WiFi...");
+  boot_splash_set_progress(20, "Checking WiFi...");
   lv_timer_handler();
-
-  /* WiFi (needed before auth polling) */
-  wifi_connect();
-
-  boot_splash_set_progress(60, "Checking account...");
-  lv_timer_handler();
-
-  /* ── Grudge Account Auth Gate ────────────────── */
-  account_init(account);
 
 #if DEV_MODE
-  /* DEV MODE: skip Web3Auth, use device UUID as identity */
-  Serial.println("[MAIN] *** DEV_MODE active — skipping auth gate ***");
+  /* DEV MODE: skip all setup, use device UUID as identity */
+  Serial.println("[MAIN] *** DEV_MODE active — skipping setup ***");
+  wifi_connect();  /* legacy hardcoded WiFi for dev */
   wallet_init(wallet);
+  account_init(account);
   account.grudgeId    = "DEV-" + wallet.deviceUUID.substring(0, 8);
   account.displayName = "DevNode";
   account.authToken   = "dev-local";
   account.loggedIn    = true;
-
   boot_splash_set_progress(100, "Dev Mode");
   lv_timer_handler();
   delay(400);
   boot_splash_hide();
   _start_main_ui();
 #else
-  if (account_resume(account)) {
-    /* Valid session found in NVS — go straight to main UI */
-    boot_splash_set_progress(100, "Welcome back!");
+  /* ── Step 1: Try saved WiFi networks from NVS ────── */
+  bool wifiOk = wifi_try_saved_networks();
+
+  /* Also try hardcoded creds as fallback */
+  if (!wifiOk) {
+    boot_splash_set_progress(40, "Trying config WiFi...");
     lv_timer_handler();
-    delay(400);
-    boot_splash_hide();
-    _start_main_ui();
+    wifi_connect();
+    wifiOk = (WiFi.status() == WL_CONNECTED);
+  }
+
+  if (wifiOk) {
+    boot_splash_set_progress(60, "Checking account...");
+    lv_timer_handler();
+
+    /* ── Step 2: Check for saved account session ── */
+    account_init(account);
+    if (account_resume(account)) {
+      boot_splash_set_progress(100, "Welcome back!");
+      lv_timer_handler();
+      delay(400);
+      boot_splash_hide();
+      _start_main_ui();
+    } else {
+      /* WiFi connected but no account — show account setup */
+      boot_splash_set_progress(100, "Account Setup");
+      lv_timer_handler();
+      delay(400);
+      boot_splash_hide();
+      account_setup_show(account, wallet);
+    }
   } else {
-    /* No session — show login screen with pairing code */
-    boot_splash_set_progress(100, "Please log in");
+    /* No WiFi — show WiFi setup screen */
+    boot_splash_set_progress(100, "WiFi Setup");
     lv_timer_handler();
     delay(400);
     boot_splash_hide();
-    login_screen_show(account);
-    /* Main UI will be created by on_login_success() callback */
+    wifi_setup_show();
   }
 #endif
 
-  Serial.println("[MAIN] Setup complete");
+  Serial.printf("[MAIN] Setup complete | Heap: %uKB\n", ESP.getFreeHeap() / 1024);
 }
 
 /* ── Loop ─────────────────────────────────────────── */
@@ -340,6 +438,13 @@ void loop() {
         account_logout(account);
         mainUIReady = false;
         ESP.restart();
+      } else if (serialCmdBuf == "WIPE") {
+        Serial.println("[MAIN] FACTORY RESET via serial");
+        account_factory_reset();
+        delay(300);
+        ESP.restart();
+      } else if (serialCmdBuf == "HEAP") {
+        _heap_check();
       }
       serialCmdBuf = "";
     } else {
@@ -360,8 +465,9 @@ void loop() {
     bool wifiOk = WiFi.status() == WL_CONNECTED;
     ui_shell_set_wifi(wifiOk, wifiOk ? WiFi.RSSI() : 0);
     ui_shell_set_uptime(millis() / 1000);
+    ui_shell_set_ble(voiceBTState.clientConnected);
     ui_shell_update_tabs(wallet, nodeState, treatyState, votingState,
-                         alertState, 0.0f);
+                         alertState, voiceBTState, aiAdminState, 0.0f);
     screensaver_reset_timer();
   }
 
@@ -390,6 +496,12 @@ void loop() {
                            millis() / 1000, nodeState.peerCount,
                            ESP.getFreeHeap());
     }
+  }
+
+  /* Heap monitoring (every 60s) */
+  if (millis() - lastHeapCheck > HEAP_CHECK_INTERVAL_MS) {
+    lastHeapCheck = millis();
+    _heap_check();
   }
 
   delay(5); /* yield to RTOS */

@@ -14,3 +14,8 @@ logs/
 
 # Device secrets — NEVER commit
 include/config_secrets.h
+deploy_key
+
+# Mobile
+mobile/node_modules
+1.venv/

@@ -1,7 +1,9 @@
 #include "ui_shell.h"
 #include "account.h"
+#include "ai_admin.h"
 #include "img_account_btn.h"
 #include "theme.h"
+#include "voice_bt.h"
 #include <lvgl.h>
 
 /* Account reference — set by main.cpp via ui_shell_set_account() */
@@ -18,15 +20,18 @@ extern void ui_tab_vote_create(lv_obj_t *parent);
 extern void ui_tab_alerts_create(lv_obj_t *parent);
 extern void ui_tab_nft_create(lv_obj_t *parent);
 extern void ui_tab_character_create(lv_obj_t *parent);
+extern void ui_tab_voice_create(lv_obj_t *parent);
 extern void ui_tab_wallet_update(const GrudaWallet &w, float balance);
 extern void ui_tab_node_update(const GRD17NodeState &s);
 extern void ui_tab_treaty_refresh(const TreatyState &state);
 extern void ui_tab_alerts_refresh(const AlertState &state);
+extern void ui_tab_voice_refresh(const VoiceBTState &vbt, const AIAdminState &ai);
 
 #define HEADER_H 28  /* compact status strip */
 
 static lv_obj_t *statusBar = nullptr;
 static lv_obj_t *lblWifi = nullptr;
+static lv_obj_t *lblBle = nullptr;
 static lv_obj_t *lblId = nullptr;
 static lv_obj_t *lblUptime = nullptr;
 static lv_obj_t *accountPanel = nullptr;
@@ -166,6 +171,13 @@ static void _create_status_bar(lv_obj_t *parent) {
   lv_obj_set_style_text_font(lblWifi, &lv_font_montserrat_12, 0);
   lv_obj_align(lblWifi, LV_ALIGN_LEFT_MID, 0, 0);
 
+  /* BLE — next to WiFi */
+  lblBle = lv_label_create(statusBar);
+  lv_label_set_text(lblBle, LV_SYMBOL_BLUETOOTH);
+  lv_obj_set_style_text_color(lblBle, lv_color_hex(WCS_TEXT_MUTED), 0);
+  lv_obj_set_style_text_font(lblBle, &lv_font_montserrat_12, 0);
+  lv_obj_align(lblBle, LV_ALIGN_LEFT_MID, 50, 0);
+
   /* Node ID — center */
   lblId = lv_label_create(statusBar);
   lv_label_set_text(lblId, "GRD-17");
@@ -230,10 +242,11 @@ void ui_shell_create() {
   lv_obj_set_style_pad_hor(tabBtns, 10, LV_PART_ITEMS);
   lv_obj_set_style_text_font(tabBtns, &lv_font_montserrat_16, 0);
 
-  /* Create tabs: Character | NFT | Treaty | Alerts | Settings */
+  /* Create tabs: Character | NFT | Treaty | Voice | Alerts | Settings */
   lv_obj_t *tabChar     = lv_tabview_add_tab(tv, LV_SYMBOL_HOME);
   lv_obj_t *tabNft      = lv_tabview_add_tab(tv, LV_SYMBOL_IMAGE);
   lv_obj_t *tabTreaty   = lv_tabview_add_tab(tv, LV_SYMBOL_ENVELOPE);
+  lv_obj_t *tabVoice    = lv_tabview_add_tab(tv, LV_SYMBOL_AUDIO);
   lv_obj_t *tabAlerts   = lv_tabview_add_tab(tv, LV_SYMBOL_BELL);
   lv_obj_t *tabSettings = lv_tabview_add_tab(tv, LV_SYMBOL_SETTINGS);
 
@@ -241,6 +254,7 @@ void ui_shell_create() {
   ui_tab_character_create(tabChar);  /* Grudge Warlord race card */
   ui_tab_nft_create(tabNft);
   ui_tab_treaty_create(tabTreaty);
+  ui_tab_voice_create(tabVoice);
   ui_tab_alerts_create(tabAlerts);
   ui_tab_node_create(tabSettings);
 }
@@ -271,13 +285,26 @@ void ui_shell_set_uptime(uint32_t seconds) {
   lv_label_set_text_fmt(lblUptime, "%u:%02u", h, m);
 }
 
+void ui_shell_set_ble(bool connected) {
+  if (!lblBle) return;
+  if (connected) {
+    lv_obj_set_style_text_color(lblBle, lv_color_hex(WCS_BLUE), 0);
+  } else {
+    lv_obj_set_style_text_color(lblBle, lv_color_hex(WCS_TEXT_MUTED), 0);
+  }
+}
+
 void ui_shell_update_tabs(const GrudaWallet &wallet,
                           const GRD17NodeState &nodeState,
                           const TreatyState &treatyState,
                           const VotingState &votingState,
-                          const AlertState &alertState, float balance) {
+                          const AlertState &alertState,
+                          const VoiceBTState &voiceState,
+                          const AIAdminState &aiState,
+                          float balance) {
   ui_tab_wallet_update(wallet, balance);
   ui_tab_node_update(nodeState);
   ui_tab_treaty_refresh(treatyState);
   ui_tab_alerts_refresh(alertState);
+  ui_tab_voice_refresh(voiceState, aiState);
 }

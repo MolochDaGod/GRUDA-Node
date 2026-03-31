@@ -8,7 +8,7 @@
 #define LV_COLOR_DEPTH          16
 #define LV_COLOR_16_SWAP        0       /* TFT_eSPI pushColors handles swap */
 #define LV_MEM_CUSTOM           0
-#define LV_MEM_SIZE             (38U * 1024U)
+#define LV_MEM_SIZE             (28U * 1024U)
 #define LV_DISP_DEF_REFR_PERIOD 30
 #define LV_DPI_DEF              130
 
@@ -19,7 +19,7 @@
 #define LV_FONT_MONTSERRAT_12   1
 #define LV_FONT_MONTSERRAT_14   1
 #define LV_FONT_MONTSERRAT_16   1
-#define LV_FONT_MONTSERRAT_20   1
+#define LV_FONT_MONTSERRAT_20   0
 #define LV_FONT_DEFAULT         &lv_font_montserrat_14
 
 /* Features */
@@ -33,16 +33,16 @@
 #define LV_USE_BTN              1
 #define LV_USE_BTNMATRIX        1
 #define LV_USE_CANVAS           0
-#define LV_USE_CHECKBOX         1
-#define LV_USE_DROPDOWN         1
+#define LV_USE_CHECKBOX         0
+#define LV_USE_DROPDOWN         0
 #define LV_USE_IMG              1
 #define LV_USE_LABEL            1
 #define LV_USE_LINE             1
-#define LV_USE_ROLLER           1
-#define LV_USE_SLIDER           1
+#define LV_USE_ROLLER           0
+#define LV_USE_SLIDER           0
 #define LV_USE_SWITCH           1
 #define LV_USE_TEXTAREA         1
-#define LV_USE_TABLE            1
+#define LV_USE_TABLE            0
 #define LV_USE_TABVIEW          1
 #define LV_USE_TILEVIEW         0
 #define LV_USE_WIN              0
@@ -50,7 +50,7 @@
 #define LV_USE_SPINBOX          0
 #define LV_USE_SPINNER          1
 #define LV_USE_LIST             1
-#define LV_USE_LED              1
+#define LV_USE_LED              0
 #define LV_USE_MSGBOX           1
 #define LV_USE_METER            0
 #define LV_USE_CHART            0

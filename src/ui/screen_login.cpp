@@ -107,7 +107,7 @@ void login_screen_show(GrudgeAccount &acct) {
     /* Title */
     lv_obj_t *title = lv_label_create(loginScreen);
     lv_label_set_text(title, "GRUDGE NODE");
-    lv_obj_set_style_text_font(title, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
     lv_obj_set_style_text_color(title, lv_color_hex(WCS_ORANGE), 0);
     lv_obj_set_style_text_letter_space(title, 3, 0);
 
@@ -134,7 +134,7 @@ void login_screen_show(GrudgeAccount &acct) {
     lblCode = lv_label_create(codeBox);
     lv_label_set_text(lblCode, _pairingCode.code);
     lv_obj_center(lblCode);
-    lv_obj_set_style_text_font(lblCode, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(lblCode, &lv_font_montserrat_16, 0);
     lv_obj_set_style_text_color(lblCode, lv_color_hex(WCS_TEXT_PRIMARY), 0);
     lv_obj_set_style_text_letter_space(lblCode, 8, 0);
 

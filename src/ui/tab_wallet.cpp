@@ -45,7 +45,7 @@ void ui_tab_wallet_create(lv_obj_t *parent) {
   lblBalance = lv_label_create(grudaCard);
   lv_label_set_text(lblBalance, "0.0000");
   lv_obj_set_style_text_color(lblBalance, lv_color_hex(WCS_TEXT_PRIMARY), 0);
-  lv_obj_set_style_text_font(lblBalance, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(lblBalance, &lv_font_montserrat_16, 0);
 
   /* GBUX balance card */
   lv_obj_t *gbuxCard = lv_obj_create(parent);
@@ -66,7 +66,7 @@ void ui_tab_wallet_create(lv_obj_t *parent) {
   lblGbux = lv_label_create(gbuxCard);
   lv_label_set_text(lblGbux, "0.0000");
   lv_obj_set_style_text_color(lblGbux, lv_color_hex(WCS_TEXT_PRIMARY), 0);
-  lv_obj_set_style_text_font(lblGbux, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(lblGbux, &lv_font_montserrat_16, 0);
 
   /* System info */
   lblHeap = lv_label_create(parent);

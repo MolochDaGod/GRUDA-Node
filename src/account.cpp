@@ -180,3 +180,71 @@ bool account_session_expired(const GrudgeAccount& acct) {
        expired tokens and the device will fall back to login screen */
     return false;
 }
+
+/* ── Provision new account directly from device ────── */
+bool account_provision(GrudgeAccount& acct, const String& displayName,
+                       const String& deviceUUID) {
+    HTTPClient http;
+    String url = String("https://") + API_HOST + DEVICE_PROVISION_PATH;
+    http.begin(url);
+    http.addHeader("Content-Type", "application/json");
+    http.setTimeout(8000);
+
+    JsonDocument doc;
+    doc["deviceUUID"]       = deviceUUID;
+    doc["displayName"]      = displayName;
+    doc["hardwareType"]     = "ESP32-GRD17";
+    doc["firmwareVersion"]  = GRUDA_VERSION;
+
+    String payload;
+    serializeJson(doc, payload);
+
+    int code = http.POST(payload);
+    if (code != 200 && code != 201) {
+        Serial.printf("[ACCT] Provision failed: HTTP %d\n", code);
+        http.end();
+        return false;
+    }
+
+    String body = http.getString();
+    http.end();
+
+    JsonDocument resp;
+    if (deserializeJson(resp, body)) {
+        Serial.println("[ACCT] Provision response parse error");
+        return false;
+    }
+
+    acct.grudgeId    = resp["grudgeId"].as<String>();
+    acct.displayName = resp["displayName"].as<String>();
+    acct.authToken   = resp["token"].as<String>();
+    acct.expiresAt   = resp["expiresAt"] | 0;
+    acct.loggedIn    = true;
+
+    _save_session(acct);
+
+    Serial.printf("[ACCT] Provisioned new account: %s (%s)\n",
+                  acct.displayName.c_str(), acct.grudgeId.c_str());
+    return true;
+}
+
+/* ── Factory Reset ────────────────────────────────── */
+void account_factory_reset() {
+    /* Wipe account session */
+    Preferences p;
+    p.begin(NVS_ACCT_NS, false);
+    p.clear();
+    p.end();
+
+    /* Wipe WiFi credentials */
+    p.begin(NVS_WIFI_NS, false);
+    p.clear();
+    p.end();
+
+    /* Wipe device identity */
+    p.begin(NVS_NAMESPACE, false);
+    p.clear();
+    p.end();
+
+    Serial.println("[ACCT] Factory reset — all NVS data wiped");
+}

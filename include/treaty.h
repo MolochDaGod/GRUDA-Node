@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include "wallet.h"
 
-#define TREATY_MAX_MESSAGES 20
+#define TREATY_MAX_MESSAGES 16
 #define TREATY_QUICK_REPLIES_COUNT 6
 
 /* Channel types */

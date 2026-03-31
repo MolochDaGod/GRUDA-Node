@@ -794,6 +794,17 @@
           } else {
             log("error", "[AUTH] Web3Auth client configuration is missing");
           }
+
+          if (
+            runtimeConfig.grudgeApiHost &&
+            runtimeConfig.grudgeWsHost &&
+            runtimeConfig.grudgeIdHost
+          ) {
+            log(
+              "info",
+              `⬡ Master node routes: API ${runtimeConfig.grudgeApiHost}:${runtimeConfig.grudgeApiPort} · WS ${runtimeConfig.grudgeWsHost}:${runtimeConfig.grudgeWsPort} · ID ${runtimeConfig.grudgeIdHost}`,
+            );
+          }
         } catch (error) {
           log("error", "Failed to load runtime configuration");
         }

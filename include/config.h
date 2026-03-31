@@ -44,11 +44,21 @@
 #endif
 
 /* ── Grudge Backend ─────────────────────────────── */
-#define API_HOST "api.grudge-studio.com"
-#define API_PORT 443
-#define WS_HOST "ws.grudge-studio.com"
-#define WS_PORT 443
-#define ID_HOST "id.grudge-studio.com"
+#ifndef API_HOST
+  #define API_HOST "api.grudge-studio.com"
+#endif
+#ifndef API_PORT
+  #define API_PORT 443
+#endif
+#ifndef WS_HOST
+  #define WS_HOST "ws.grudge-studio.com"
+#endif
+#ifndef WS_PORT
+  #define WS_PORT 443
+#endif
+#ifndef ID_HOST
+  #define ID_HOST "id.grudge-studio.com"
+#endif
 
 /* ── WebSocket Namespaces ─────────────────────────── */
 #define WS_NS_TREATY "/treaty"
@@ -88,6 +98,12 @@
 #define NVS_KEY_GRUDGEID "grudge_id"
 #define NVS_KEY_NODEID "node_id"
 
+/* ── NVS WiFi Storage ──────────────────────────── */
+#define NVS_WIFI_NS       "gruda_wifi"
+#define NVS_WIFI_MAX      3            /* max saved networks */
+#define NVS_WIFI_COUNT    "wifi_count"
+#define NVS_WIFI_LAST     "last_idx"
+
 /* ── Device Auth ────────────────────────────── */
 #define DEVICE_AUTH_POLL_PATH "/device/auth/poll"
 #define DEVICE_PAIRING_CODE_LEN 6
@@ -95,10 +111,11 @@
 #define PAIRING_CODE_EXPIRE_MS 300000   /* regenerate code after 5 min */
 
 /* ── Device Registration API (id.grudge-studio.com) ── */
-#define DEVICE_REGISTER_PATH  "/api/devices/register"
-#define DEVICE_HEARTBEAT_PATH "/api/devices/heartbeat"
-#define DEVICE_ME_PATH        "/api/devices/me"
-#define NVS_KEY_DEVTOKEN      "dev_token"
+#define DEVICE_REGISTER_PATH   "/api/devices/register"
+#define DEVICE_HEARTBEAT_PATH  "/api/devices/heartbeat"
+#define DEVICE_ME_PATH         "/api/devices/me"
+#define DEVICE_PROVISION_PATH  "/api/devices/provision"
+#define NVS_KEY_DEVTOKEN       "dev_token"
 
 /* ── Treaty Guild: Grudge Studio (default) ───────── */
 #define GUILD_NAME          "Grudge Studio"
@@ -121,9 +138,27 @@
 /* Channel count */
 #define GUILD_CHANNEL_COUNT 8
 
+/* ── BLE Voice Service ────────────────────────────── */
+/* Custom 128-bit UUIDs for the GRUDA Voice BLE service */
+#define BLE_SERVICE_UUID        "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+#define BLE_CHAR_RX_UUID        "6e400002-b5a3-f393-e0a9-e50e24dcca9e"  /* phone → ESP32 */
+#define BLE_CHAR_TX_UUID        "6e400003-b5a3-f393-e0a9-e50e24dcca9e"  /* ESP32 → phone */
+#define BLE_DEVICE_NAME_PREFIX  "GRUDA-Node-"
+#define BLE_MTU                 256
+#define BLE_MAX_MSG_LEN         240   /* max text message over BLE */
+
+/* ── AI Admin ─────────────────────────────────────── */
+#define AI_VOICE_CMD_PATH       "/api/ai/voice-cmd"
+#define AI_ADMIN_TIMEOUT_MS     8000
+#define AI_RESPONSE_MAX_LEN     256   /* max chars displayed on LVGL */
+#define AI_TRANSCRIPT_MAX       8     /* max entries in voice transcript log */
+
 /* ── Timing ─────────────────────────────────────── */
 #define HASH_BROADCAST_INTERVAL_MS 30000 /* broadcast hash state every 30s */
 #define ALERT_POLL_INTERVAL_MS 5000
 #define RECONNECT_INTERVAL_MS 10000
+#define HEAP_CHECK_INTERVAL_MS 60000    /* log heap stats every 60s */
+#define LOW_HEAP_THRESHOLD     20480    /* 20KB — trigger cleanup below this */
+#define WIFI_CONNECT_TIMEOUT   40       /* 40 * 250ms = 10s */
 
 #endif /* GRUDA_CONFIG_H */

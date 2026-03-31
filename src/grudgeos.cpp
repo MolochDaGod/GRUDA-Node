@@ -52,6 +52,7 @@ static void _register_agent() {
     agent["capabilities"][1] = "nft-display";
     agent["capabilities"][2] = "treaty-relay";
     agent["capabilities"][3] = "wallet-signer";
+    agent["capabilities"][4] = "voice-relay";
     agent["heap"]      = ESP.getFreeHeap();
     agent["chipModel"] = ESP.getChipModel();
     agent["cpuFreq"]   = ESP.getCpuFreqMHz();

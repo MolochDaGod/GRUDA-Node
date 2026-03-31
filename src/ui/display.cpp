@@ -16,7 +16,7 @@ static XPT2046_Touchscreen ts(TOUCH_SPI_CS);
 static lv_disp_draw_buf_t drawBuf;
 /* Single 20-line draw buffer — ESP32 DRAM is tight with all modules.
    20 lines * 240px * 2 bytes = 9,600 bytes. */
-#define DRAW_BUF_LINES 20
+#define DRAW_BUF_LINES 10
 static lv_color_t buf1[SCREEN_W * DRAW_BUF_LINES];
 static bool touchHasLast = false;
 static uint16_t touchLastX = 0;

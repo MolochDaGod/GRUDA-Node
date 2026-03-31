@@ -54,4 +54,15 @@ const char* account_get_grudge_id(const GrudgeAccount& acct);
 /* Check if session has expired (compare against NTP or millis offset) */
 bool account_session_expired(const GrudgeAccount& acct);
 
+/**
+ * Provision a new Grudge account directly from the device.
+ * Creates a guest puter ID + Grudge ID via backend.
+ * Returns true if account was created and acct is populated.
+ */
+bool account_provision(GrudgeAccount& acct, const String& displayName,
+                       const String& deviceUUID);
+
+/* Full factory reset — wipe all account + device NVS data */
+void account_factory_reset();
+
 #endif /* GRUDA_ACCOUNT_H */

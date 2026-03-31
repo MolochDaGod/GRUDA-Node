@@ -12,15 +12,94 @@ const { createRemoteJWKSet, jwtVerify } = require("jose");
 
 /* ── Config ────────────────────────────────────────── */
 const PROJECT_DIR = path.resolve(__dirname, "..");
-const PORT = 3000;
+const PORT = Number(process.env.DEVAPP_PORT || 3000);
 const PIO_SCRIPTS =
   "C:\\Users\\nugye\\AppData\\Local\\Programs\\Python\\Python313\\Scripts";
+const FIRMWARE_CONFIG_PATH = path.join(
+  PROJECT_DIR,
+  "include",
+  "config_secrets.h",
+);
+
+function getMasterNodeConfig() {
+  return {
+    apiHost: process.env.GRUDGE_API_HOST || "api.grudge-studio.com",
+    apiPort: Number(process.env.GRUDGE_API_PORT || 443),
+    wsHost: process.env.GRUDGE_WS_HOST || "ws.grudge-studio.com",
+    wsPort: Number(process.env.GRUDGE_WS_PORT || 443),
+    idHost: process.env.GRUDGE_ID_HOST || "id.grudge-studio.com",
+  };
+}
+
+function escapeCString(value = "") {
+  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function getPortNumber(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function syncFirmwareConfigFromEnv() {
+  const masterNode = getMasterNodeConfig();
+  const lines = [
+    "#ifndef GRUDA_CONFIG_SECRETS_H",
+    "#define GRUDA_CONFIG_SECRETS_H",
+    "",
+    "/**",
+    " * Auto-generated from .env by devapp/server.js.",
+    " * This file is gitignored and safe to regenerate.",
+    " */",
+    "",
+    `#define WIFI_SSID "${escapeCString(process.env.WIFI_SSID || "")}"`,
+    `#define WIFI_PASS "${escapeCString(process.env.WIFI_PASS || "")}"`,
+    `#define WIFI_SSID_2 "${escapeCString(process.env.WIFI_SSID_2 || "")}"`,
+    `#define WIFI_PASS_2 "${escapeCString(process.env.WIFI_PASS_2 || "")}"`,
+    `#define WIFI_SSID_3 "${escapeCString(process.env.WIFI_SSID_3 || "")}"`,
+    `#define WIFI_PASS_3 "${escapeCString(process.env.WIFI_PASS_3 || "")}"`,
+    "",
+    `#define DISCORD_WEBHOOK_HOST "${escapeCString(process.env.DISCORD_WEBHOOK_HOST || "discord.com")}"`,
+    `#define DISCORD_WEBHOOK_PATH "${escapeCString(process.env.DISCORD_WEBHOOK_PATH || "")}"`,
+    "",
+    `#define DEV_MODE ${process.env.DEV_MODE === "1" ? 1 : 0}`,
+    "",
+    `#define API_HOST "${escapeCString(masterNode.apiHost)}"`,
+    `#define API_PORT ${getPortNumber(masterNode.apiPort, 443)}`,
+    `#define WS_HOST "${escapeCString(masterNode.wsHost)}"`,
+    `#define WS_PORT ${getPortNumber(masterNode.wsPort, 443)}`,
+    `#define ID_HOST "${escapeCString(masterNode.idHost)}"`,
+    "",
+    "#endif /* GRUDA_CONFIG_SECRETS_H */",
+    "",
+  ];
+
+  fs.writeFileSync(FIRMWARE_CONFIG_PATH, lines.join("\n"), "utf8");
+  return { ...masterNode, path: FIRMWARE_CONFIG_PATH };
+}
+
+let firmwareConfig = null;
+
+function ensureFirmwareConfig() {
+  try {
+    firmwareConfig = syncFirmwareConfigFromEnv();
+    return true;
+  } catch (err) {
+    broadcast({ type: "error", msg: `[CONFIG] ${err.message}` });
+    return false;
+  }
+}
 
 function getPublicRuntimeConfig() {
+  const masterNode = firmwareConfig || getMasterNodeConfig();
   return {
     grudgeIdUrl: process.env.GRUDGE_ID_URL || "",
     web3AuthClientId: process.env.WEB3_Client_ID || "",
     web3AuthJwksEndpoint: process.env.WEB3_JWKS_Endpoint || "",
+    grudgeApiHost: masterNode.apiHost,
+    grudgeApiPort: masterNode.apiPort,
+    grudgeWsHost: masterNode.wsHost,
+    grudgeWsPort: masterNode.wsPort,
+    grudgeIdHost: masterNode.idHost,
     supportedTokens,
     swapPolicy,
   };
@@ -67,6 +146,10 @@ function runCmd(cmd, args, name) {
       type: "error",
       msg: `[BUSY] "${activeName}" is still running. Stop it first.`,
     });
+    return false;
+  }
+
+  if (cmd === "pio" && !ensureFirmwareConfig()) {
     return false;
   }
 
@@ -427,6 +510,9 @@ app.post("/api/flash", (req, res) => {
     broadcast({ type: "error", msg: "[BUSY] Stop current process first." });
     return res.json({ ok: false });
   }
+  if (!ensureFirmwareConfig()) {
+    return res.json({ ok: false });
+  }
 
   broadcast({
     type: "start",
@@ -628,6 +714,14 @@ wss.on("connection", (ws) => {
 });
 
 /* ── Start ─────────────────────────────────────────── */
+try {
+  firmwareConfig = syncFirmwareConfigFromEnv();
+  console.log(
+    `[CONFIG] Firmware build targets API ${firmwareConfig.apiHost}:${firmwareConfig.apiPort}, WS ${firmwareConfig.wsHost}:${firmwareConfig.wsPort}, ID ${firmwareConfig.idHost}`,
+  );
+} catch (err) {
+  console.error(`[CONFIG] Failed to generate firmware config: ${err.message}`);
+}
 server.listen(PORT, "127.0.0.1", () => {
   const env = process.env.CROSSMINT_ENV === "staging" ? "STAGING" : "PRODUCTION";
   console.log("\n╔══════════════════════════════════════╗");

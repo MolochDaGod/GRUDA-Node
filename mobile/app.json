@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "GRUDA Node",
+    "slug": "gruda-node",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "grudanode",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a14"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a14"
+      },
+      "package": "com.grudgestudio.grudanode",
+      "versionCode": 1,
+      "permissions": ["INTERNET"],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "grudanode",
+              "host": "auth"
+            },
+            {
+              "scheme": "https",
+              "host": "grudgewarlords.com",
+              "pathPrefix": "/app"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-web-browser"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      },
+      "apiHost": "api.grudge-studio.com",
+      "wsHost": "ws.grudge-studio.com",
+      "idHost": "id.grudge-studio.com",
+      "gbuxMint": "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray",
+      "grudaPolygon": "0xa6fd32edc7c037b77537b673da9971df0f34a721"
+    }
+  }
+}
